@@ -9,6 +9,7 @@ const sequelize = new Sequelize(
     process.env.DB_PASSWORD as string,
     {
         host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT),
         dialect: 'mysql',
         logging: false,
     }
@@ -19,7 +20,7 @@ export const connectDB = async (): Promise<void> => {
         await sequelize.authenticate();
         console.log('✅ Database connected successfully.');
         // ✅ Sync models here
-        await import ('../models/association.model')
+        await import('../models/association.model')
         // await sequelize.sync({ alter: true });
 
         await sequelize.sync({ force: false });
