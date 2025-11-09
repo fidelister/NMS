@@ -1,0 +1,75 @@
+import { DataTypes, Model, Optional } from "sequelize";
+import sequelize from "../../database";
+import Exam from "./exam.model";
+import { Student } from "../association.model";
+
+interface ExamResultAttributes {
+    id: number;
+    examId: number;
+    studentId: number;
+    term: string;
+    subjectId: number;
+    marksObtained: number;
+}
+
+interface ExamResultCreationAttributes extends Optional<ExamResultAttributes, "id"> { }
+
+class ExamResult
+    extends Model<ExamResultAttributes, ExamResultCreationAttributes>
+    implements ExamResultAttributes {
+    public id!: number;
+    public examId!: number;
+    public term!: string;
+    public studentId!: number;
+    public subjectId!: number;
+    public marksObtained!: number;
+}
+
+ExamResult.init(
+    {
+        id: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            autoIncrement: true,
+            primaryKey: true,
+        },
+        examId: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: false,
+            references: { model: "exams", key: "id" },
+        },
+        studentId: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: false,
+            references: { model: "students", key: "id" },
+        },
+        subjectId: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: false,
+            references: { model: "subjects", key: "id" },
+            onDelete: "CASCADE",
+            onUpdate: "CASCADE",
+        },
+        term: {
+            type: DataTypes.ENUM("Term 1", "Term 2", "Term 3"),
+            allowNull: false,
+        },
+        marksObtained: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+            validate: {
+                min: 0,
+                max: 60, // total marks
+            },
+        },
+    },
+    {
+        sequelize,
+        modelName: "ExamResult",
+        tableName: "exam_results",
+    }
+);
+
+ExamResult.belongsTo(Exam, { foreignKey: "examId", as: "exam" });
+ExamResult.belongsTo(Student, { foreignKey: "studentId", as: "student" });
+
+export default ExamResult;
