@@ -114,7 +114,6 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
   new SuccessResponse("Report cards generated successfully", reportCards).sendResponse(res);
 });
 
-
 // // ✅ GET /api/report-cards/class/:classId
 export const getClassReportCards = asyncHandler(async (req: Request, res: Response) => {
   const { classId } = req.params;
@@ -132,30 +131,70 @@ export const getClassReportCards = asyncHandler(async (req: Request, res: Respon
 
 // // ✅ GET /api/report-cards/student/:studentId
 export const getStudentReportCard = asyncHandler(async (req: Request, res: Response) => {
- const { studentId } = req.params;
-  const { term } = req.body; // <-- so that report card is term-specific
+  const { studentId } = req.params;
+  const { term } = req.body;
 
+  // Fetch student's report cards for the term
   const reportCards = await ReportCard.findAll({
     where: { studentId, term },
     include: [
-      { model: ClassModel, as: "class", attributes: ["name"] },
+      { model: ClassModel, as: "class", attributes: ["id", "name"] },
       { model: Subject, as: "subject", attributes: ["name"] },
     ],
   });
 
   if (reportCards.length === 0) {
-     res.status(404).json({ message: "No report card found for this student and term." });
+    res.status(404).json({ message: "No report card found for this student and term." });
   }
 
-  // ✅ Compute totals and average
+  const classId = reportCards[0].classId; // Get classId from report card
+
+  // ✅ Step 1: Fetch all report cards in that class & term
+  const allClassReportCards = await ReportCard.findAll({
+    where: { classId, term },
+    include: [{ model: Student, as: "student", attributes: ["id"] }]
+  });
+
+  // ✅ Step 2: Compute each student's total & average
+  const studentAverages: Record<number, number> = {};
+
+  for (const rc of allClassReportCards) {
+    if (!studentAverages[rc.studentId]) studentAverages[rc.studentId] = 0;
+    studentAverages[rc.studentId] += rc.totalScore;
+  }
+
+  // Get subject count per student (all students in same class have same subject count, but we compute precise)
+  const subjectCount: Record<number, number> = {};
+  for (const rc of allClassReportCards) {
+    if (!subjectCount[rc.studentId]) subjectCount[rc.studentId] = 0;
+    subjectCount[rc.studentId] += 1;
+  }
+
+  const averagesArray = Object.entries(studentAverages).map(([sId, total]) => ({
+    studentId: Number(sId),
+    average: parseFloat((total / subjectCount[Number(sId)]).toFixed(2)),
+  }));
+
+  // ✅ Step 3: Sort by highest average
+  averagesArray.sort((a, b) => b.average - a.average);
+
+  // ✅ Step 4: Assign ranking
+  const ranking: Record<number, number> = {};
+  averagesArray.forEach((item, index) => {
+    ranking[item.studentId] = index + 1;
+  });
+
+  // ✅ Compute this student’s average and position
   const totalSubjects = reportCards.length;
   const totalScore = reportCards.reduce((sum, rc) => sum + rc.totalScore, 0);
   const average = parseFloat((totalScore / totalSubjects).toFixed(2));
+  const position = ranking[Number(studentId)];
 
   const overall = {
     totalSubjects,
     totalScore,
     average,
+    position
   };
 
   new SuccessResponse("Student report card retrieved successfully", {

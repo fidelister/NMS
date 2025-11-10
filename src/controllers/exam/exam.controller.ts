@@ -8,19 +8,39 @@ import { Student, Subject } from "../../models/association.model";
 // ✅ Create New Exam (Admin)
 export const createExam = asyncHandler(async (req: Request, res: Response) => {
     const { name, classId, subjectId, term, date } = req.body;
+
+    // Verify subject belongs to class
     const subject = await Subject.findOne({
         where: { id: subjectId, classId },
     });
 
     if (!subject) {
-        res.status(404).json({ message: "This subject does not belong to the specified class." });
+        res.status(404).json({
+            success: false,
+            message: "This subject does not belong to the specified class.",
+        });
         return;
     }
 
+    // Check if exam already exists for this subject in this class and term
+    const existingExam = await Exam.findOne({
+        where: { classId, subjectId, term },
+    });
+
+    if (existingExam) {
+        res.status(400).json({
+            success: false,
+            message: "An exam has already been created for this subject in this class for this term.",
+        });
+        return;
+    }
+
+    // Create exam
     const exam = await Exam.create({ name, classId, subjectId, term, date });
 
     new SuccessResponse("Exam created successfully", exam).sendResponse(res);
 });
+
 
 // ✅ Get All Exams
 export const getAllExams = asyncHandler(async (req: Request, res: Response) => {
@@ -45,9 +65,11 @@ export const getExamDetails = asyncHandler(async (req: Request, res: Response) =
 export const uploadExamResults = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { results } = req.body;
-    if (!results?.subjectId || !results?.term) {
-        res.status(404).json({ message: "Incomplete details" })
-    }
+    // console.log(results);
+
+    // if (!results?.subjectId || !results?.term) {
+    //     res.status(404).json({ message: "Incomplete details" })
+    // }
     // results: [{ studentId: 1, marksObtained: 55 }, ...]
 
     const exam = await Exam.findByPk(id);
@@ -58,6 +80,23 @@ export const uploadExamResults = asyncHandler(async (req: Request, res: Response
 
     const createdResults = await Promise.all(
         results.map(async (result: { studentId: number; marksObtained: number; subjectId: number, term: string }) => {
+            if (result.marksObtained < 0 || result.marksObtained > 60) {
+                res.status(404).json({ message: `Invalid mark for Student ID ${result.studentId}. Marks must be between 0 and 60.` });
+                return;
+            }
+            const existing = await ExamResult.findOne({
+                where: {
+                    examId: exam.id,
+                    studentId: result.studentId,
+                    subjectId: result.subjectId,
+                    term: result.term,
+                },
+            });
+
+            if (existing) {
+                res.status(404).json({ message: `Result already uploaded for Student ID ${result.studentId} in this subject and term.` });
+                return;
+            }
             return ExamResult.create({
                 examId: exam.id,
                 subjectId: result.subjectId,

@@ -6,13 +6,49 @@ import ClassTest from "../../models/ClassTests/classTests.model";
 import { AuthRequest } from "../../middlewares/authMiddleware";
 
 // ✅ Add or Upload Class Test Results
-export const createClassTest = asyncHandler(async (req: Request, res: Response) => {
+export const createClassTest = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { studentId, subjectId, classId, term, date, test1, test2, test3, test4 } = req.body;
+  const loggedTeacherId = req.user?.id; // ✅ get logged-in teacher ID
 
+  const classRecord = await ClassModel.findOne({ where: { id: classId, teacherId: loggedTeacherId } });
+
+  if (!classRecord) {
+    res.status(403).json({
+      success: false,
+      message: "You are not assigned as the primary teacher for this class.",
+    });
+  }
+  // Validate score range (0 to 10)
+  const scores = { test1, test2, test3, test4 };
+  for (const [key, value] of Object.entries(scores)) {
+    if (value !== undefined && (value < 0 || value > 10)) {
+      res.status(400).json({
+        success: false,
+        message: `${key} must be between 0 and 10`,
+      });
+      return;
+    }
+  }
+
+  // Check if record already exists
+  const existingTest = await ClassTest.findOne({
+    where: { studentId, subjectId, classId, term },
+  });
+
+  if (existingTest) {
+    res.status(400).json({
+      success: false,
+      message: "Class test has already been uploaded for this student and subject in this term.",
+    });
+    return;
+  }
+
+  // Calculate totals
   const totalMarks = 40;
   const totalMarkObtained =
     (test1 || 0) + (test2 || 0) + (test3 || 0) + (test4 || 0);
 
+  // Create new record
   const newRecord = await ClassTest.create({
     studentId,
     subjectId,
@@ -30,6 +66,8 @@ export const createClassTest = asyncHandler(async (req: Request, res: Response) 
   new SuccessResponse("Class test record created successfully", newRecord).sendResponse(res);
 });
 
+
+
 // ✅ Get All Class Tests for a Class
 export const getClassTestsByClass = asyncHandler(async (req: Request, res: Response) => {
   const { classId } = req.params;
@@ -39,7 +77,7 @@ export const getClassTestsByClass = asyncHandler(async (req: Request, res: Respo
     include: [
       {
         association: "student",
-        attributes: { exclude: ["password"] }, 
+        attributes: { exclude: ["password"] },
       },
       {
         association: "subject",
