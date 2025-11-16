@@ -22,7 +22,7 @@ adminRoutes.get('/profile', protect, getAdminProfile);
 adminRoutes.get('/studentsByClass/:classId', protect, adminOnly, getStudentsByClass);
 adminRoutes.get("/student/:studentId", protect, adminOnly, getStudentAttendance);
 adminRoutes.get('/allClasses', protect, adminOnly, getAllClasses);
-adminRoutes.get('/subjectsByClass/:classId', protect, adminOnly, getSubjectsByClass);
+adminRoutes.get('/subjectsByClass/:classId', protect, getSubjectsByClass);
 adminRoutes.get("/teacherClass/:teacherId", protect, adminOnly, getTeacherClasses);
 adminRoutes.get("/teacherSubjects/:teacherId", protect, adminOnly, getTeacherSubjects);
 //report card
