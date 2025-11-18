@@ -9,6 +9,7 @@ import { ERRORCODES } from '../../../exceptions/root';
 import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
 import { ClassModel, Student, Subject, Teacher } from '../../../models/association.model';
+import Session from '../../../models/session/session.model';
 
 export const registerAdmin = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { name, email, password } = req.body;
@@ -136,18 +137,23 @@ export const assignTeacherToSubject = asyncHandler(async (req: Request, res: Res
 });
 export const assignStudentToClass = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { studentId, classId } = req.body;
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
 
-  // 🔍 Find the student
-  const student = await Student.findByPk(studentId);
+  // 🔍 Find the student in this session
+  const student = await Student.findOne({ where: { id: studentId, sessionId: activeSession.id } });
   if (!student) {
-    res.status(404).json({ message: 'Student not found.' });
+    res.status(404).json({ message: "Student not found in the active session." });
     return;
   }
 
   // 🔍 Find the class
-  const classInstance = await ClassModel.findByPk(classId);
+const classInstance = await ClassModel.findOne({ where: { id: classId, sessionId: activeSession.id } });
   if (!classInstance) {
-    res.status(404).json({ message: 'Class not found.' });
+    res.status(404).json({ message: "Class not found in the active session." });
     return;
   }
 
@@ -177,29 +183,43 @@ export const assignStudentToClass = asyncHandler(async (req: Request, res: Respo
 export const getStudentsByClass = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { classId } = req.params;
 
-  const classInstance = await ClassModel.findByPk(classId, {
+  // ✅ Get active session
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+
+  // ✅ Only fetch class inside active session
+  const classInstance = await ClassModel.findOne({
+    where: {
+      id: classId,
+      sessionId: activeSession.id,
+    },
     include: [
       {
         model: Student,
         as: "students",
         attributes: { exclude: ["password"] },
+        where: { sessionId: activeSession.id }, // 👈 ensure students belong to session
+        required: false, // allow returning class even if no students yet
       },
     ],
   });
 
-  // 🚫 Check if class exists
+  // 🚫 Class not in this session
   if (!classInstance) {
-    res.status(404).json({ message: "Class not found" });
+    res.status(404).json({ message: "Class not found in active session" });
     return;
   }
 
-  // 🚫 Check if no students in this class
+  // 🚫 No students
   if (!classInstance.students || classInstance.students.length === 0) {
-    res.status(404).json({ message: "No students found under this class" });
+    res.status(404).json({ message: "No students found under this class in active session" });
     return;
   }
 
-  // ✅ Return success
+  // ✅ Success
   new SuccessResponse("Students retrieved successfully", {
     class: classInstance.name,
     students: classInstance.students,
@@ -208,20 +228,47 @@ export const getStudentsByClass = asyncHandler(async (req: Request, res: Respons
 
 
 export const getAllClasses = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const classes = await ClassModel.findAll();
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+  const classes = await ClassModel.findAll({
+    where: { sessionId: activeSession.id },
+    include: [
+      {
+        model: Subject,
+        attributes: ['id', 'name', 'teacherId'],
+        as: 'subjects',
+      },
+      {
+        model: Student,
+        as: 'students',
+        attributes: ['id', 'firstName', 'lastName', 'email', 'dateOfAdmission', 'nmsNumber'],
+      }
+    ]
+  });
 
   if (!classes.length) {
-    res.status(404).json({ message: "No classes found" });
+    res.status(404).json({ message: "No classes found for the active session" });
     return;
   }
 
-  new SuccessResponse("Classes retrieved successfully", {
-    classes,
-  }).sendResponse(res);
+  new SuccessResponse("Classes retrieved successfully", { classes }).sendResponse(res);
 });
+
 
 export const assignPrimaryTeacherToClass = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { classId, teacherId } = req.body;
+
+  // 🔹 Check active session
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
 
   // 🔹 Check if class exists
   const classInstance = await ClassModel.findByPk(classId);
@@ -237,7 +284,7 @@ export const assignPrimaryTeacherToClass = asyncHandler(async (req: Request, res
     return;
   }
 
-  // 🔹 Check if class already has a teacher assigned
+  // 🔹 Check if same teacher already assigned
   if (classInstance.teacherId && classInstance.teacherId === teacherId) {
     res.status(400).json({
       message: "This teacher is already assigned to this class.",
@@ -245,7 +292,7 @@ export const assignPrimaryTeacherToClass = asyncHandler(async (req: Request, res
     return;
   }
 
-  // 🔹 Assign the teacher
+  // 🔹 Assign primary teacher
   classInstance.teacherId = teacherId;
   await classInstance.save();
 
@@ -253,14 +300,24 @@ export const assignPrimaryTeacherToClass = asyncHandler(async (req: Request, res
   delete teacherData.password;
 
   new SuccessResponse("Teacher successfully assigned to class as primary teacher", {
+    session: activeSession,
     class: classInstance,
     teacher: teacherData,
   }).sendResponse(res);
 });
+
 export const getSubjectsByClass = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { classId } = req.params;
 
-  // 🔹 Find class and include subjects
+  // 🔹 Check active session
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+
+  // 🔹 Find class and include subjects + teacher
   const classInstance = await ClassModel.findByPk(classId, {
     include: [
       {
@@ -270,7 +327,7 @@ export const getSubjectsByClass = asyncHandler(async (req: Request, res: Respons
           {
             model: Teacher,
             as: "teacher",
-            attributes: ["id", "name", "email"], // optional: include assigned teacher
+            attributes: ["id", "name", "email"],
           },
         ],
       },
@@ -278,7 +335,7 @@ export const getSubjectsByClass = asyncHandler(async (req: Request, res: Respons
   });
 
   if (!classInstance) {
-      res.status(404).json({ message: "Class not found." });
+    res.status(404).json({ message: "Class not found." });
     return;
   }
 
@@ -288,7 +345,9 @@ export const getSubjectsByClass = asyncHandler(async (req: Request, res: Respons
     return;
   }
 
+  // ✅ Response
   new SuccessResponse("Subjects retrieved successfully", {
+    session: activeSession,
     class: {
       id: classInstance.id,
       name: classInstance.name,
@@ -296,6 +355,7 @@ export const getSubjectsByClass = asyncHandler(async (req: Request, res: Respons
     subjects: classInstance.subjects,
   }).sendResponse(res);
 });
+
 export const getTeacherClasses = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { teacherId } = req.params;
 

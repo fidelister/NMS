@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
-import SuccessResponse from "../../middlewares/helper";
+import SuccessResponse, { getActiveSession } from "../../middlewares/helper";
 import { ClassModel, Student, Subject } from "../../models/association.model";
 import ClassTest from "../../models/ClassTests/classTests.model";
 import { AuthRequest } from "../../middlewares/authMiddleware";
@@ -17,6 +17,7 @@ export const createClassTest = asyncHandler(async (req: AuthRequest, res: Respon
       success: false,
       message: "You are not assigned as the primary teacher for this class.",
     });
+    return;
   }
   // Validate score range (0 to 10)
   const scores = { test1, test2, test3, test4 };
@@ -49,6 +50,8 @@ export const createClassTest = asyncHandler(async (req: AuthRequest, res: Respon
     (test1 || 0) + (test2 || 0) + (test3 || 0) + (test4 || 0);
 
   // Create new record
+        const activeSession = await getActiveSession();
+  
   const newRecord = await ClassTest.create({
     studentId,
     subjectId,
@@ -61,6 +64,7 @@ export const createClassTest = asyncHandler(async (req: AuthRequest, res: Respon
     test4,
     totalMarks,
     totalMarkObtained,
+    sessionId:activeSession?.id
   });
 
   new SuccessResponse("Class test record created successfully", newRecord).sendResponse(res);

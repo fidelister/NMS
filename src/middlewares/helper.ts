@@ -1,4 +1,5 @@
 import jwt, { SignOptions, JwtPayload, Secret } from 'jsonwebtoken';
+import Session from '../models/session/session.model';
 
 class SuccessResponse {
   success: boolean;
@@ -34,4 +35,8 @@ export const getGrade = (score: number) => {
   if (score >= 45) return { grade: "D", remark: "Fair" };
   if (score >= 40) return { grade: "E", remark: "Pass" };
   return { grade: "F", remark: "Fail" };
+};
+
+export const getActiveSession = async () => {
+  return await Session.findOne({ where: { isActive: true } });
 };

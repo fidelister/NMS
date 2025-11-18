@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
 import { ClassModel, Student, Teacher } from "../association.model";
+import Session from "../session/session.model";
 
 
 export interface AttendanceAttributes {
@@ -11,9 +12,10 @@ export interface AttendanceAttributes {
   date: Date;
   week: number;
   status: "present" | "absent";
+  sessionId: number;
 }
 
-interface AttendanceCreationAttributes extends Optional<AttendanceAttributes, "id"> {}
+interface AttendanceCreationAttributes extends Optional<AttendanceAttributes, "id" | "sessionId"> { }
 
 class Attendance extends Model<AttendanceAttributes, AttendanceCreationAttributes>
   implements AttendanceAttributes {
@@ -24,6 +26,7 @@ class Attendance extends Model<AttendanceAttributes, AttendanceCreationAttribute
   public date!: Date;
   public week!: number;
   public status!: "present" | "absent";
+  public sessionId!: number;
 }
 
 Attendance.init(
@@ -35,6 +38,12 @@ Attendance.init(
     date: { type: DataTypes.DATEONLY, allowNull: false },
     week: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     status: { type: DataTypes.ENUM("present", "absent"), allowNull: false },
+    sessionId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      references: { model: "sessions", key: "id" },
+      onDelete: "CASCADE",
+    }
   },
   {
     sequelize,
@@ -48,5 +57,6 @@ Attendance.init(
 Attendance.belongsTo(Student, { foreignKey: "studentId", as: "student" });
 Attendance.belongsTo(ClassModel, { foreignKey: "classId", as: "class" });
 Attendance.belongsTo(Teacher, { foreignKey: "teacherId", as: "teacher" });
-
+Attendance.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
+Session.hasMany(Attendance, { foreignKey: "sessionId", as: "attendances" });
 export default Attendance;

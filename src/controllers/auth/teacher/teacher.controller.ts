@@ -5,7 +5,7 @@ import Teacher from '../../../models/auth/teacher.model';
 import asyncHandler from 'express-async-handler';
 import { BadRequestsException } from '../../../exceptions/bad-request-exceptions';
 import { ERRORCODES } from '../../../exceptions/root';
-import SuccessResponse, { generateToken } from '../../../middlewares/helper';
+import SuccessResponse, { generateToken, getActiveSession } from '../../../middlewares/helper';
 import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
 
@@ -19,7 +19,8 @@ export const registerTeacher = asyncHandler(async (req: Request, res: Response):
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const teacher = await Teacher.create({ name, email, password: hashed, subject });
+    
+    const teacher = await Teacher.create({ name, email, password: hashed, subject});
 
     const token = generateToken({ id: teacher.id, role: 'teacher' });
 

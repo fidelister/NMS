@@ -17,7 +17,7 @@ teacherRoutes.put('/update', protect, adminOnly, updateTeacherDetails);
 teacherRoutes.post('/changePassword',protect, changeTeacherPassword);
 //attendance
 teacherRoutes.post("/record", protect, teacherOnly, recordAttendance);
-teacherRoutes.get("/class/:classId", protect, getClassAttendance);
+teacherRoutes.get("/class/:classId", protect, teacherOnly, getClassAttendance);
 teacherRoutes.get("/student/:studentId", protect, teacherOnly, getStudentAttendance);
 teacherRoutes.put("/update-attendance", protect, teacherOnly, updateAttendance);
 // class test

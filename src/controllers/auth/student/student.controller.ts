@@ -5,9 +5,10 @@ import Student from '../../../models/auth/student.model';
 import asyncHandler from 'express-async-handler';
 import { BadRequestsException } from '../../../exceptions/bad-request-exceptions';
 import { ERRORCODES } from '../../../exceptions/root';
-import SuccessResponse, { generateToken } from '../../../middlewares/helper';
+import SuccessResponse, { generateToken, getActiveSession } from '../../../middlewares/helper';
 import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
+import Session from '../../../models/session/session.model';
 
 // 🟢 Register Student
 export const registerStudent = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -23,6 +24,8 @@ export const registerStudent = asyncHandler(async (req: Request, res: Response):
     }
 
     const hashed = await bcrypt.hash(password, 10);
+          const activeSession = await getActiveSession();
+    
     const student = await Student.create({
         firstName,
         lastName,
@@ -32,6 +35,7 @@ export const registerStudent = asyncHandler(async (req: Request, res: Response):
         classId,
         teacherId,
         dateOfAdmission: new Date(),
+        sessionId:activeSession?.id
     });
 
     const token = generateToken({ id: student.id, role: 'student' });
@@ -49,6 +53,7 @@ export const registerStudent = asyncHandler(async (req: Request, res: Response):
             teacherId: student.teacherId,
             nmsNumber: student.nmsNumber,
             dateOfAdmission: student.dateOfAdmission,
+            sessionId:activeSession?.id
         },
     }).sendResponse(res);
 });
@@ -99,8 +104,15 @@ export const getStudentProfile = asyncHandler(async (req: AuthRequest, res: Resp
 });
 
 // ✅ Get all students
+
 export const getAllStudents = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const students = await Student.findAll();
+    const activeSession = await Session.findOne({ where: { isActive: true } });
+
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+    const students = await Student.findAll({ where: { sessionId: activeSession.id }});
 
     if (!students.length) {
         res.status(404).json({ message: 'No students found.' });
@@ -117,16 +129,35 @@ export const getAllStudents = asyncHandler(async (req: Request, res: Response): 
 // ✅ Get a single student
 export const getStudentById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const student = await Student.findByPk(id);
 
-    if (!student) {
-        res.status(404).json({ message: 'Student not found.' });
+    // Get active session
+    const activeSession = await Session.findOne({ where: { isActive: true } });
+
+    if (!activeSession) {
+        res.status(400).json({ message: "No active session found" });
         return;
     }
+
+    // Fetch the student only if they belong to the active session
+    const student = await Student.findOne({
+        where: {
+            id,
+            sessionId: activeSession.id
+        }
+    });
+
+    if (!student) {
+        res.status(404).json({ message: 'Student not found in the active session.' });
+        return;
+    }
+
     const studentData = student.toJSON() as Record<string, any>;
-    delete studentData.password;
-    new SuccessResponse("Student retrieved successfully", { studentData }).sendResponse(res);
+    delete studentData.password; // remove sensitive data
+
+    new SuccessResponse("Student retrieved successfully", { student: studentData })
+        .sendResponse(res);
 });
+
 
 // ✅ Delete a student
 export const deleteStudent = asyncHandler(async (req: Request, res: Response): Promise<void> => {

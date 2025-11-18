@@ -2,7 +2,7 @@
 import asyncHandler from 'express-async-handler';
 import { ClassModel, Subject } from '../../models/association.model';
 import { BadRequestsException } from '../../exceptions/bad-request-exceptions';
-import SuccessResponse from '../../middlewares/helper';
+import SuccessResponse, { getActiveSession } from '../../middlewares/helper';
 import { ERRORCODES } from '../../exceptions/root';
 import { Request, Response } from 'express';
 
@@ -26,8 +26,9 @@ export const createSubject = asyncHandler(async (req: Request, res: Response): P
     if (existingSubject) {
         throw new BadRequestsException('Subject already exists in this class', ERRORCODES.BAD_REQUEST);
     }
+      const activeSession = await getActiveSession();
 
-    const newSubject = await Subject.create({ name, classId: Number(classId) });
+    const newSubject = await Subject.create({ name, classId: Number(classId), sessionId:activeSession?.id });
 
     new SuccessResponse('Subject created successfully', {
         subject: newSubject,

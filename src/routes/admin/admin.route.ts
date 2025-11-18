@@ -5,12 +5,21 @@ import { createClass } from "../../controllers/class/class.controller";
 import { createSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
-import { generateReportCards, getClassReportCards, getStudentReportCard} from "../../controllers/report_card/report_card.controller";
+import { generateReportCards, getClassReportCards, getStudentReportCard, regenerateReportCards} from "../../controllers/report_card/report_card.controller";
+import { createSession, getAllSessions, getSessionDetails } from "../../controllers/session/session.controller";
 
 const adminRoutes: Router = Router();
 
 adminRoutes.post('/register', registerAdmin);
 adminRoutes.post('/login', loginAdmin);
+adminRoutes.post('/create-session', protect, adminOnly, createSession);
+adminRoutes.get('/sessions', protect, adminOnly, getAllSessions);
+adminRoutes.get(
+    '/sessions/:sessionId/details',
+    protect,
+    adminOnly,
+    getSessionDetails
+);
 adminRoutes.post('/changePassword', protect, adminOnly, changeAdminPassword);
 adminRoutes.post('/add-teacher', protect, adminOnly, registerTeacher);
 adminRoutes.post('/create-class', protect, adminOnly, createClass);
@@ -27,6 +36,7 @@ adminRoutes.get("/teacherClass/:teacherId", protect, adminOnly, getTeacherClasse
 adminRoutes.get("/teacherSubjects/:teacherId", protect, adminOnly, getTeacherSubjects);
 //report card
 adminRoutes.post("/generate", protect, adminOnly, generateReportCards);
+adminRoutes.post("/regenerate", protect, adminOnly, regenerateReportCards);
 adminRoutes.get("/class-report/:classId", protect, adminOnly, getClassReportCards);
 adminRoutes.get("/student-report/:studentId", protect, adminOnly, getStudentReportCard);
 // adminRoutes.get("/student/:studentId", protect, adminOnly, getStudentReportCard);

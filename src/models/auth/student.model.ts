@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../../database';
+import Session from '../session/session.model';
 
 export interface StudentAttributes {
   id: number;
@@ -14,9 +15,10 @@ export interface StudentAttributes {
   createdAt?: Date;
   gender: "male" | "female";
   updatedAt?: Date;
+  sessionId?: number;
 }
 
-export interface StudentCreationAttributes extends Optional<StudentAttributes, 'id' | 'nmsNumber'> {}
+export interface StudentCreationAttributes extends Optional<StudentAttributes, 'id' | 'nmsNumber'> { }
 
 class Student extends Model<StudentAttributes, StudentCreationAttributes> implements StudentAttributes {
   public id!: number;
@@ -29,6 +31,7 @@ class Student extends Model<StudentAttributes, StudentCreationAttributes> implem
   public teacherId?: number;
   public nmsNumber!: string;
   public gender!: "male" | "female";
+  public sessionId!: number;
 
 }
 const generateNmsNumber = () => {
@@ -51,6 +54,12 @@ Student.init(
     classId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     teacherId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     nmsNumber: { type: DataTypes.STRING, allowNull: false, defaultValue: () => generateNmsNumber() },
+    sessionId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      references: { model: "sessions", key: "id" },
+      onDelete: "CASCADE",
+    },
 
   },
   {
@@ -60,5 +69,6 @@ Student.init(
     timestamps: true,
   }
 );
-
+Student.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
+Session.hasMany(Student, { foreignKey: "sessionId", as: "students" });
 export default Student;

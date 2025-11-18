@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
-import SuccessResponse from "../../middlewares/helper";
+import SuccessResponse, { getActiveSession } from "../../middlewares/helper";
 import Exam from "../../models/Exams/exam.model";
 import ExamResult from "../../models/Exams/examResults.model";
 import { Student, Subject } from "../../models/association.model";
+import Session from "../../models/session/session.model";
 
 // ✅ Create New Exam (Admin)
 export const createExam = asyncHandler(async (req: Request, res: Response) => {
@@ -34,9 +35,10 @@ export const createExam = asyncHandler(async (req: Request, res: Response) => {
         });
         return;
     }
+        const activeSession = await getActiveSession();
 
     // Create exam
-    const exam = await Exam.create({ name, classId, subjectId, term, date });
+    const exam = await Exam.create({ name, classId, subjectId, term, date, sessionId:activeSession?.id});
 
     new SuccessResponse("Exam created successfully", exam).sendResponse(res);
 });
@@ -44,9 +46,31 @@ export const createExam = asyncHandler(async (req: Request, res: Response) => {
 
 // ✅ Get All Exams
 export const getAllExams = asyncHandler(async (req: Request, res: Response) => {
-    const exams = await Exam.findAll({ include: ["class", "subject"] });
-    new SuccessResponse("All exams retrieved successfully", exams).sendResponse(res);
+  // 🔹 Get active session
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+
+  // 🔹 Fetch exams for ONLY this session
+  const exams = await Exam.findAll({
+    where: { sessionId: activeSession.id },
+    include: ["class", "subject"],
+  });
+
+  if (exams.length === 0) {
+    res.status(404).json({ message: "No exams found for this session" });
+    return;
+  }
+
+  new SuccessResponse(
+    "Exams for the active session retrieved successfully",
+    exams
+  ).sendResponse(res);
 });
+
 
 // ✅ Get Exam Details
 export const getExamDetails = asyncHandler(async (req: Request, res: Response) => {
@@ -63,52 +87,56 @@ export const getExamDetails = asyncHandler(async (req: Request, res: Response) =
 
 // ✅ Upload Exam Results (Teacher)
 export const uploadExamResults = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { results } = req.body;
-    // console.log(results);
+  const { id } = req.params;
+  const { results } = req.body;
 
-    // if (!results?.subjectId || !results?.term) {
-    //     res.status(404).json({ message: "Incomplete details" })
-    // }
-    // results: [{ studentId: 1, marksObtained: 55 }, ...]
+  const exam = await Exam.findByPk(id);
+  if (!exam) {
+    throw new Error("Exam not found");
+  }
 
-    const exam = await Exam.findByPk(id);
-    if (!exam) {
-        res.status(404).json({ message: "Exam not found" });
-        return;
-    }
+  // 🔹 Get active session ONCE
+  const activeSession = await getActiveSession();
+  if (!activeSession) {
+    throw new Error("No active session found");
+  }
 
-    const createdResults = await Promise.all(
-        results.map(async (result: { studentId: number; marksObtained: number; subjectId: number, term: string }) => {
-            if (result.marksObtained < 0 || result.marksObtained > 60) {
-                res.status(404).json({ message: `Invalid mark for Student ID ${result.studentId}. Marks must be between 0 and 60.` });
-                return;
-            }
-            const existing = await ExamResult.findOne({
-                where: {
-                    examId: exam.id,
-                    studentId: result.studentId,
-                    subjectId: result.subjectId,
-                    term: result.term,
-                },
-            });
+  const createdResults = await Promise.all(
+    results.map(async (result: { studentId: number; marksObtained: number; subjectId: number; term: string }) => {
 
-            if (existing) {
-                res.status(404).json({ message: `Result already uploaded for Student ID ${result.studentId} in this subject and term.` });
-                return;
-            }
-            return ExamResult.create({
-                examId: exam.id,
-                subjectId: result.subjectId,
-                studentId: result.studentId,
-                term: result.term,
-                marksObtained: result.marksObtained,
-            });
-        })
-    );
+      if (result.marksObtained < 0 || result.marksObtained > 60) {
+        throw new Error(`Invalid mark for Student ID ${result.studentId}. Marks must be between 0 and 60.`);
+      }
 
-    new SuccessResponse("Exam results uploaded successfully", createdResults).sendResponse(res);
+      const existing = await ExamResult.findOne({
+        where: {
+          examId: exam.id,
+          studentId: result.studentId,
+          subjectId: result.subjectId,
+          term: result.term,
+        },
+      });
+
+      if (existing) {
+        throw new Error(
+          `Result already uploaded for Student ID ${result.studentId} in this subject and term.`
+        );
+      }
+
+      return ExamResult.create({
+        examId: exam.id,
+        subjectId: result.subjectId,
+        studentId: result.studentId,
+        term: result.term,
+        marksObtained: result.marksObtained,
+        sessionId: activeSession.id, // ← Correct session placement
+      });
+    })
+  );
+
+  new SuccessResponse("Exam results uploaded successfully", createdResults).sendResponse(res);
 });
+
 
 // ✅ Get Exam Results
 export const getExamResults = asyncHandler(async (req: Request, res: Response) => {

@@ -2,12 +2,14 @@ import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
 import Exam from "./exam.model";
 import { Student } from "../association.model";
+import Session from "../session/session.model";
 
 interface ExamResultAttributes {
     id: number;
     examId: number;
     studentId: number;
     term: string;
+    sessionId?: number;
     subjectId: number;
     marksObtained: number;
 }
@@ -20,6 +22,7 @@ class ExamResult
     public id!: number;
     public examId!: number;
     public term!: string;
+    public sessionId!: number;
     public studentId!: number;
     public subjectId!: number;
     public marksObtained!: number;
@@ -41,6 +44,12 @@ ExamResult.init(
             type: DataTypes.INTEGER.UNSIGNED,
             allowNull: false,
             references: { model: "students", key: "id" },
+        },
+        sessionId: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: false,
+            references: { model: "sessions", key: "id" },
+            onDelete: "CASCADE",
         },
         subjectId: {
             type: DataTypes.INTEGER.UNSIGNED,
@@ -71,5 +80,6 @@ ExamResult.init(
 
 ExamResult.belongsTo(Exam, { foreignKey: "examId", as: "exam" });
 ExamResult.belongsTo(Student, { foreignKey: "studentId", as: "student" });
-
+ExamResult.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
+Session.hasMany(ExamResult, { foreignKey: "sessionId", as: "exam_results" });
 export default ExamResult;

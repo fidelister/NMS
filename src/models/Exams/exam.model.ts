@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
 import { ClassModel, Student, Subject, Teacher } from "../association.model";
+import Session from "../session/session.model";
 
 interface ExamAttributes {
     id: number;
@@ -10,6 +11,8 @@ interface ExamAttributes {
     term: string;
     date: Date;
     totalMarks: number; // Always 60
+  sessionId?: number;
+
 }
 
 interface ExamCreationAttributes extends Optional<ExamAttributes, "id" | "totalMarks"> { }
@@ -22,6 +25,8 @@ class Exam extends Model<ExamAttributes, ExamCreationAttributes> implements Exam
     public term!: string;
     public date!: Date;
     public totalMarks!: number;
+    public sessionId!: number;
+
 }
 
 Exam.init(
@@ -49,6 +54,12 @@ Exam.init(
             type: DataTypes.ENUM("Term 1", "Term 2", "Term 3"),
             allowNull: false,
         },
+         sessionId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      references: { model: "sessions", key: "id" },
+      onDelete: "CASCADE",
+    },
         date: {
             type: DataTypes.DATEONLY,
             allowNull: false,
@@ -68,5 +79,6 @@ Exam.init(
 
 Exam.belongsTo(ClassModel, { foreignKey: "classId", as: "class" });
 Exam.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" });
-
+Exam.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
+Session.hasMany(Exam, { foreignKey: "sessionId", as: "exams" });
 export default Exam;

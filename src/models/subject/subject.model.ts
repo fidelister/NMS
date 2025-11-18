@@ -1,12 +1,14 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../../database';
 import ClassModel from '../class/class.model';
+import Session from '../session/session.model';
 
 interface SubjectAttributes {
     id: number;
     name: string;
     classId: number;
     teacherId?: number | null;
+    sessionId?: number;
 }
 
 interface SubjectCreationAttributes extends Optional<SubjectAttributes, 'id'> { }
@@ -16,6 +18,7 @@ class Subject extends Model<SubjectAttributes, SubjectCreationAttributes> implem
     public name!: string;
     public classId!: number;
     public teacherId?: number | null;
+    public sessionId!: number;
 }
 
 Subject.init(
@@ -47,6 +50,12 @@ Subject.init(
             },
             onDelete: 'SET NULL',
         },
+        sessionId: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: false,
+            references: { model: "sessions", key: "id" },
+            onDelete: "CASCADE",
+        }
     },
     {
         sequelize,
@@ -54,5 +63,6 @@ Subject.init(
         tableName: 'subjects',
     }
 );
-
+Subject.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
+Session.hasMany(Subject, { foreignKey: "sessionId", as: "subjects" });
 export default Subject;

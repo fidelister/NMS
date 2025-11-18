@@ -15,16 +15,6 @@ Student.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
 ClassModel.hasMany(Student, { foreignKey: 'classId', as: 'students' });
 Student.belongsTo(ClassModel, { foreignKey: 'classId', as: 'class' });
 
-// ✅ Class ↔ Teacher (Many-to-Many)  // understand this
-// ClassModel.belongsToMany(Teacher, {
-//   through: 'TeacherClasses',
-//   as: 'teachers',
-// });
-// Teacher.belongsToMany(ClassModel, {
-//   through: 'TeacherClasses',
-//   as: 'classes',
-// });
-
 // ✅ Subject ↔ Teacher (One-to-Many)
 Teacher.hasMany(Subject, { foreignKey: 'teacherId', as: 'subjects' });
 Subject.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
