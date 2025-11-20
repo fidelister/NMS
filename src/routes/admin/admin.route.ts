@@ -1,5 +1,5 @@
 import { Express, Router, Request, Response } from "express";
-import { adminOnly, protect } from "../../middlewares/authMiddleware";
+import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
 import { assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
 import { createClass } from "../../controllers/class/class.controller";
 import { createSubject } from "../../controllers/subject/subject.controller";
@@ -35,10 +35,10 @@ adminRoutes.get('/subjectsByClass/:classId', protect, getSubjectsByClass);
 adminRoutes.get("/teacherClass/:teacherId", protect, adminOnly, getTeacherClasses);
 adminRoutes.get("/teacherSubjects/:teacherId", protect, adminOnly, getTeacherSubjects);
 //report card
-adminRoutes.post("/generate", protect, adminOnly, generateReportCards);
-adminRoutes.post("/regenerate", protect, adminOnly, regenerateReportCards);
-adminRoutes.get("/class-report/:classId", protect, adminOnly, getClassReportCards);
-adminRoutes.get("/student-report/:studentId", protect, adminOnly, getStudentReportCard);
+adminRoutes.post("/generate", protect, adminOrTeacher, generateReportCards);
+adminRoutes.post("/regenerate", protect, adminOrTeacher, regenerateReportCards);
+adminRoutes.get("/class-report/:classId", protect, adminOrTeacher, getClassReportCards);
+adminRoutes.get("/student-report/:studentId", protect, adminOrTeacher, getStudentReportCard);
 // adminRoutes.get("/student/:studentId", protect, adminOnly, getStudentReportCard);
 
 export default adminRoutes;

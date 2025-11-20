@@ -1,5 +1,5 @@
 import { Express, Router, Request, Response } from "express";
-import { adminOnly, protect, teacherOnly } from "../../middlewares/authMiddleware";
+import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
 import { changeTeacherPassword, deleteTeacher, getAllTeachers, getTeacherById, getTeacherProfile, loginTeacher, registerTeacher, updateTeacherDetails } from "../../controllers/auth/teacher/teacher.controller";
 import { getClassAttendance, getStudentAttendance, recordAttendance, updateAttendance } from "../../controllers/attendance/attendance.controller";
 import { createClassTest, getClassTestsByClass, getClassTestsByStudent, updateClassTest } from "../../controllers/classTests/classTests.controller";
@@ -16,20 +16,20 @@ teacherRoutes.delete("/:id",protect,adminOnly, deleteTeacher);
 teacherRoutes.put('/update', protect, adminOnly, updateTeacherDetails);
 teacherRoutes.post('/changePassword',protect, changeTeacherPassword);
 //attendance
-teacherRoutes.post("/record", protect, teacherOnly, recordAttendance);
-teacherRoutes.get("/class/:classId", protect, teacherOnly, getClassAttendance);
-teacherRoutes.get("/student/:studentId", protect, teacherOnly, getStudentAttendance);
-teacherRoutes.put("/update-attendance", protect, teacherOnly, updateAttendance);
+teacherRoutes.post("/record", protect, adminOrTeacher,recordAttendance);
+teacherRoutes.get("/class/:classId", protect, adminOrTeacher, getClassAttendance);
+teacherRoutes.get("/student/:studentId", protect, adminOrTeacher, getStudentAttendance);
+teacherRoutes.put("/update-attendance", protect, adminOrTeacher, updateAttendance);
 // class test
-teacherRoutes.post("/upload-test", protect, teacherOnly, createClassTest);
-teacherRoutes.get("/getClassTestsByClass/:classId", protect, teacherOnly, getClassTestsByClass);
-teacherRoutes.get("/getClassTestsByStudent/:studentId", protect, teacherOnly, getClassTestsByStudent);
-teacherRoutes.put("/updateClassTest/:testId", protect, teacherOnly, updateClassTest);
+teacherRoutes.post("/upload-test", protect,adminOrTeacher,createClassTest);
+teacherRoutes.get("/getClassTestsByClass/:classId", protect, adminOrTeacher, getClassTestsByClass);
+teacherRoutes.get("/getClassTestsByStudent/:studentId", protect, adminOrTeacher, getClassTestsByStudent);
+teacherRoutes.put("/updateClassTest/:testId", protect, adminOrTeacher, updateClassTest);
 // Exams    
-teacherRoutes.post("/api/exams",protect, teacherOnly, createExam);
-teacherRoutes.get("/api/exams",protect, teacherOnly, getAllExams);
-teacherRoutes.get("/api/exams/:id",protect, teacherOnly,getExamDetails);
-teacherRoutes.post("/api/exams/:id/results",protect, teacherOnly,uploadExamResults);
-teacherRoutes.get("/api/exams/:id/results",protect, teacherOnly,getExamResults);
-teacherRoutes.put("/api/exams/:id/results/:resultId",protect, teacherOnly,updateExamResult);
+teacherRoutes.post("/api/exams",protect, adminOrTeacher, createExam);
+teacherRoutes.get("/api/exams",protect,adminOrTeacher, getAllExams);
+teacherRoutes.get("/api/exams/:id",protect, adminOrTeacher,getExamDetails);
+teacherRoutes.post("/api/exams/:id/results",protect, adminOrTeacher,uploadExamResults);
+teacherRoutes.get("/api/exams/:id/results",protect, adminOrTeacher,getExamResults);
+teacherRoutes.put("/api/exams/:id/results/:resultId",protect, adminOrTeacher,updateExamResult);
 export default teacherRoutes;

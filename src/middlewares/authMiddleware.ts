@@ -49,3 +49,10 @@ export const teacherOnly = (req: AuthRequest, res: Response, next: NextFunction)
   }
   next();
 };
+export const adminOrTeacher = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user?.role === 'admin' || req.user?.role === 'teacher') {
+    return next();
+  }
+
+  res.status(403).json({ message: 'Access denied. Only admin or teacher allowed.' });
+};
