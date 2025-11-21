@@ -9,11 +9,13 @@ import { AuthRequest } from '../../middlewares/authMiddleware';
 // ✅ Record Attendance (teacher only)
 export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const { classId, studentId, status, date, week } = req.body;
+
   if (!classId || !studentId || !status || !date || !week) {
-    res.status(400).json({ message: 'Please send all field' });
+    res.status(400).json({ message: 'Please send all fields' });
     return;
   }
-  const teacherId = (req as any).user?.id; // assuming JWT middleware sets req.user
+
+  const user = req.user; // contains id + role from token
 
   const classInstance = await ClassModel.findByPk(classId);
   if (!classInstance) {
@@ -27,11 +29,15 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
     return;
   }
 
-  // Check if teacher is assigned to this class
-  if (classInstance.teacherId !== teacherId) {
-    res.status(400).json({ message: 'You are not authorized to mark attendance for this class' });
+  // ⛔ AUTHORIZATION RULE:
+  // ADMIN → always allowed
+  // TEACHER → allowed only if assigned to the class
+  if (user.role === "teacher" && classInstance.teacherId !== user.id) {
+    res.status(403).json({
+      message: "You are not authorized to mark attendance for this class",
+    });
     return;
-  }
+  } 
 
   // Prevent duplicate attendance for same student/date
   const existing = await Attendance.findOne({ where: { studentId, date } });
@@ -39,19 +45,22 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
     res.status(400).json({ message: 'Attendance already recorded for this student today' });
     return;
   }
+
   const activeSession = await getActiveSession();
+
   const attendance = await Attendance.create({
     studentId,
     classId,
-    teacherId,
+    teacherId: user.role === "admin" ? classInstance.teacherId : user.id,
     date,
     week,
     status,
-    sessionId:activeSession?.id
+    sessionId: activeSession?.id
   });
 
   new SuccessResponse("Attendance recorded successfully", { attendance }).sendResponse(res);
 });
+
 
 // ✅ Get class attendance summary
 export const getClassAttendance = asyncHandler(async (req: Request, res: Response): Promise<void> => {

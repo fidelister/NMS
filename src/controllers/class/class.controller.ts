@@ -1,9 +1,10 @@
 import asyncHandler from 'express-async-handler';
-import { ClassModel } from '../../models/association.model';
+import { ClassModel, Student } from '../../models/association.model';
 import { BadRequestsException } from '../../exceptions/bad-request-exceptions';
 import SuccessResponse, { getActiveSession } from '../../middlewares/helper';
 import { ERRORCODES } from '../../exceptions/root';
 import { Request, Response } from 'express';
+import { AuthRequest } from '../../middlewares/authMiddleware';
 
 
 /**
@@ -39,4 +40,34 @@ export const createClass = asyncHandler(async (req: Request, res: Response): Pro
     class: newClass,
   }).sendResponse(res);
 });
+export const deleteClass = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const user = req.user; // contains { id, role }
+  const classRecord = await ClassModel.findOne({ where: { id } });
+  if (!classRecord) {
+    res.status(404).json({ message: "Class not found." });
+    return;
+  }
+  if (user.role === "admin") {
+    // no extra checks
+  }
+  else if (user.role === "teacher") {
+    if (classRecord.teacherId !== user.id) {
+      res.status(403).json({
+        message: "Access denied. You are not assigned to this class.",
+      });
+      return;
+    }
+  }
+  else {
+    res.status(403).json({ message: "Unauthorized role." });
+    return;
+  }
+  await classRecord.destroy();
+  res.status(200).json({
+    success: true,
+    message: "Class deleted successfully.",
+  });
+});
+
 

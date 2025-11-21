@@ -4,6 +4,7 @@ import { changeTeacherPassword, deleteTeacher, getAllTeachers, getTeacherById, g
 import { getClassAttendance, getStudentAttendance, recordAttendance, updateAttendance } from "../../controllers/attendance/attendance.controller";
 import { createClassTest, getClassTestsByClass, getClassTestsByStudent, updateClassTest } from "../../controllers/classTests/classTests.controller";
 import { createExam, getAllExams, getExamDetails, getExamResults, updateExamResult, uploadExamResults } from "../../controllers/exam/exam.controller";
+import { deleteClass } from "../../controllers/class/class.controller";
 
 const teacherRoutes: Router = Router();
 
@@ -32,4 +33,5 @@ teacherRoutes.get("/api/exams/:id",protect, adminOrTeacher,getExamDetails);
 teacherRoutes.post("/api/exams/:id/results",protect, adminOrTeacher,uploadExamResults);
 teacherRoutes.get("/api/exams/:id/results",protect, adminOrTeacher,getExamResults);
 teacherRoutes.put("/api/exams/:id/results/:resultId",protect, adminOrTeacher,updateExamResult);
+
 export default teacherRoutes;

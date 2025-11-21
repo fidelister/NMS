@@ -64,6 +64,8 @@ ClassTest.init(
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: { model: "classes", key: "id" },
+      onDelete: "CASCADE",
+  onUpdate: "CASCADE",
     },
      sessionId: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -103,7 +105,8 @@ ClassTest.init(
 // ✅ Associations
 ClassTest.belongsTo(Student, { foreignKey: "studentId", as: "student" });
 ClassTest.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" });
-ClassTest.belongsTo(ClassModel, { foreignKey: "classId", as: "class" });
+ClassTest.belongsTo(ClassModel, { foreignKey: "classId", as: "class", onDelete: "CASCADE",
+  onUpdate: "CASCADE"});
 
 ClassTest.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 Session.hasMany(ClassTest, { foreignKey: "sessionId", as: "class_tests" });

@@ -44,6 +44,8 @@ Exam.init(
             type: DataTypes.INTEGER.UNSIGNED,
             allowNull: false,
             references: { model: "classes", key: "id" },
+            onDelete: "CASCADE",
+      onUpdate: "CASCADE",
         },
         subjectId: {
             type: DataTypes.INTEGER.UNSIGNED,
@@ -77,7 +79,7 @@ Exam.init(
     }
 );
 
-Exam.belongsTo(ClassModel, { foreignKey: "classId", as: "class" });
+Exam.belongsTo(ClassModel, { foreignKey: "classId", as: "class", onDelete: "CASCADE"});
 Exam.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" });
 Exam.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 Session.hasMany(Exam, { foreignKey: "sessionId", as: "exams" });

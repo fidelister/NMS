@@ -33,7 +33,11 @@ Attendance.init(
   {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     studentId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    classId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    classId: {
+      type: DataTypes.INTEGER.UNSIGNED, allowNull: false, references: { model: "classes", key: "id" },
+      onDelete: "CASCADE",
+      onUpdate: "CASCADE",
+    },
     teacherId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     date: { type: DataTypes.DATEONLY, allowNull: false },
     week: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
@@ -55,7 +59,7 @@ Attendance.init(
 
 // ✅ Associations
 Attendance.belongsTo(Student, { foreignKey: "studentId", as: "student" });
-Attendance.belongsTo(ClassModel, { foreignKey: "classId", as: "class" });
+Attendance.belongsTo(ClassModel, { foreignKey: "classId", as: "class", onDelete: "CASCADE" });
 Attendance.belongsTo(Teacher, { foreignKey: "teacherId", as: "teacher" });
 Attendance.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 Session.hasMany(Attendance, { foreignKey: "sessionId", as: "attendances" });

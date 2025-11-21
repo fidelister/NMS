@@ -104,7 +104,7 @@ ReportCard.init(
 
 // Associations
 ReportCard.belongsTo(Student, { as: "student", foreignKey: "studentId" });
-ReportCard.belongsTo(ClassModel, { as: "class", foreignKey: "classId" });
+ReportCard.belongsTo(ClassModel, { as: "class", foreignKey: "classId", onDelete: "CASCADE", });
 ReportCard.belongsTo(Subject, { as: "subject", foreignKey: "subjectId" });
 ReportCard.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 Session.hasMany(ReportCard, { foreignKey: "sessionId", as: "report_cards" });

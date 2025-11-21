@@ -1,7 +1,7 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
 import { assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
-import { createClass } from "../../controllers/class/class.controller";
+import { createClass, deleteClass } from "../../controllers/class/class.controller";
 import { createSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
@@ -23,6 +23,7 @@ adminRoutes.get(
 adminRoutes.post('/changePassword', protect, adminOnly, changeAdminPassword);
 adminRoutes.post('/add-teacher', protect, adminOnly, registerTeacher);
 adminRoutes.post('/create-class', protect, adminOnly, createClass);
+adminRoutes.delete("/class/:id", protect, adminOrTeacher, deleteClass);
 adminRoutes.post('/create-subject', protect, adminOnly, createSubject);
 adminRoutes.post('/student-class', protect, adminOnly, assignStudentToClass);
 adminRoutes.post('/teacher-subject', protect, adminOnly, assignTeacherToSubject);
@@ -31,7 +32,7 @@ adminRoutes.get('/profile', protect, getAdminProfile);
 adminRoutes.get('/studentsByClass/:classId', protect, adminOnly, getStudentsByClass);
 adminRoutes.get("/student/:studentId", protect, adminOnly, getStudentAttendance);
 adminRoutes.get('/allClasses', protect, adminOnly, getAllClasses);
-adminRoutes.get('/subjectsByClass/:classId', protect, getSubjectsByClass);
+adminRoutes.get('/subjectsByClass/:classId', protect,adminOnly, getSubjectsByClass);
 adminRoutes.get("/teacherClass/:teacherId", protect, adminOnly, getTeacherClasses);
 adminRoutes.get("/teacherSubjects/:teacherId", protect, adminOnly, getTeacherSubjects);
 //report card

@@ -9,15 +9,19 @@ import { AuthRequest } from "../../middlewares/authMiddleware";
 export const createClassTest = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { studentId, subjectId, classId, term, date, test1, test2, test3, test4 } = req.body;
   const loggedTeacherId = req.user?.id; // ✅ get logged-in teacher ID
-
-  const classRecord = await ClassModel.findOne({ where: { id: classId, teacherId: loggedTeacherId } });
-
-  if (!classRecord) {
-    res.status(403).json({
-      success: false,
-      message: "You are not assigned as the primary teacher for this class.",
+  const loggedUserRole = req.user?.role;
+  if (loggedUserRole === "teacher") {
+    const classRecord = await ClassModel.findOne({
+      where: { id: classId, teacherId: loggedTeacherId }
     });
-    return;
+
+    if (!classRecord) {
+      res.status(403).json({
+        success: false,
+        message: "You are not assigned as the primary teacher for this class.",
+      });
+      return;
+    }
   }
   // Validate score range (0 to 10)
   const scores = { test1, test2, test3, test4 };
@@ -50,8 +54,8 @@ export const createClassTest = asyncHandler(async (req: AuthRequest, res: Respon
     (test1 || 0) + (test2 || 0) + (test3 || 0) + (test4 || 0);
 
   // Create new record
-        const activeSession = await getActiveSession();
-  
+  const activeSession = await getActiveSession();
+
   const newRecord = await ClassTest.create({
     studentId,
     subjectId,
@@ -64,7 +68,7 @@ export const createClassTest = asyncHandler(async (req: AuthRequest, res: Respon
     test4,
     totalMarks,
     totalMarkObtained,
-    sessionId:activeSession?.id
+    sessionId: activeSession?.id
   });
 
   new SuccessResponse("Class test record created successfully", newRecord).sendResponse(res);

@@ -4,7 +4,7 @@ import ClassModel from './class/class.model';
 import Subject from './subject/subject.model';
 
 // ✅ Class ↔ Subject (One-to-Many)
-ClassModel.hasMany(Subject, { foreignKey: 'classId', as: 'subjects' });
+ClassModel.hasMany(Subject, { foreignKey: 'classId', as: 'subjects', onDelete: 'CASCADE'});
 Subject.belongsTo(ClassModel, { foreignKey: 'classId', as: 'class' });
 
 // ✅ Teacher ↔ Student (One-to-Many)  // comment this
@@ -12,7 +12,7 @@ Teacher.hasMany(Student, { foreignKey: 'teacherId', as: 'students' });
 Student.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
 
 // ✅ Class ↔ Student (One-to-Many)
-ClassModel.hasMany(Student, { foreignKey: 'classId', as: 'students' });
+ClassModel.hasMany(Student, { foreignKey: 'classId', as: 'students', onDelete:'CASCADE' });
 Student.belongsTo(ClassModel, { foreignKey: 'classId', as: 'class' });
 
 // ✅ Subject ↔ Teacher (One-to-Many)
