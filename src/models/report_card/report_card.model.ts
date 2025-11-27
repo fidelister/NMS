@@ -17,6 +17,7 @@ class ReportCard extends Model {
   public position!: number | null;
   public average!: number | null;
   public sessionId!: number;
+  public subject?: Subject;
 
 
 }

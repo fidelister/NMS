@@ -52,27 +52,26 @@ import Session from "../../models/session/session.model";
 // });
 export const generateReportCards = asyncHandler(async (req: Request, res: Response) => {
   const { classId, term } = req.body;
-
-  // ✅ Get active session
+  // Get active session
   const activeSession = await Session.findOne({ where: { isActive: true } });
   if (!activeSession) {
     res.status(400).json({ message: "No active session found" });
     return;
   }
-
-  // ✅ Check if report cards already generated for this class + term + session
+  // Prevent duplicate generation
   const existing = await ReportCard.findOne({
     where: { classId, term, sessionId: activeSession.id },
   });
 
   if (existing) {
     res.status(400).json({
-      message: "Report cards have already been generated for this class, term, and session.",
+      message:
+        "Report cards have already been generated for this class, term, and session.",
     });
     return;
   }
 
-  // ✅ Get students and subjects *only for this session*
+  // Get students + subjects
   const students = await Student.findAll({
     where: { classId, sessionId: activeSession.id },
   });
@@ -81,12 +80,11 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
     where: { classId, sessionId: activeSession.id },
   });
 
-  const reportCards: any[] = [];
+  const generatedCards: any[] = [];
 
-  // LOOP STUDENTS ➝ LOOP SUBJECTS
+  // Create ReportCards
   for (const student of students) {
     for (const subject of subjects) {
-      // 🔹 Class Test
       const classTest = await ClassTest.findOne({
         where: {
           studentId: student.id,
@@ -96,7 +94,6 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
         },
       });
 
-      // 🔹 Exam Result
       const examResult = await ExamResult.findOne({
         where: {
           studentId: student.id,
@@ -106,50 +103,121 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
         },
       });
 
-      const testScore = classTest?.totalMarkObtained ?? null;
-      const examScore = examResult?.marksObtained ?? null;
+      const testScoresArray = [
+        classTest?.test1 ?? 0,
+        classTest?.test2 ?? 0,
+        classTest?.test3 ?? 0,
+        classTest?.test4 ?? 0,
+      ];
 
-      // ❌ Skip if the student has NO score at all
-      if (testScore === null && examScore === null) continue;
+      const testScore = classTest?.totalMarkObtained ?? 0;
+      const examScore = examResult?.marksObtained ?? 0;
 
-      const totalScore = (testScore ?? 0) + (examScore ?? 0);
+      // Skip empty results
+      if (!testScore && !examScore) continue;
+
+      const totalScore = testScore + examScore;
       const { grade, remark } = getGrade(totalScore);
 
-      // 🔹 Create Report Card
       const reportCard = await ReportCard.create({
         studentId: student.id,
         classId,
         subjectId: subject.id,
         term,
-        testScore: testScore ?? 0,
-        examScore: examScore ?? 0,
+        testScore,
+        examScore,
         totalScore,
         grade,
         remark,
         sessionId: activeSession.id,
       });
 
-      reportCards.push(reportCard);
+      generatedCards.push({
+        studentId: student.id,
+        studentName: student?.firstName + " " + student?.lastName,
+        subjectId: subject.id,
+        subjectName: subject.name,
+        assessments: testScoresArray,
+        testScore,
+        examScore,
+        totalScore,
+        grade,
+        remark,
+      });
     }
   }
 
-  if (reportCards.length === 0) {
+  if (generatedCards.length === 0) {
     res.status(404).json({
       message:
-        "No report cards generated — no student has valid test/exam results for this term in the active session.",
+        "No report cards generated — no valid results for this term in the active session.",
     });
     return;
   }
 
+  // GROUP BY STUDENTS
+  const studentResultMap: any = {};
+
+  generatedCards.forEach((r) => {
+    if (!studentResultMap[r.studentId]) {
+      studentResultMap[r.studentId] = {
+        student_id: r.studentId,
+        student_name: r.studentName,
+        overall_average: 0,
+        position: "", // <-- FIXED: Add position before sorting
+        subjects: [],
+      };
+    }
+
+    studentResultMap[r.studentId].subjects.push({
+      subject_name: r.subjectName,
+      assessments: r.assessments,
+      testScore: r.testScore,
+      examScore: r.examScore,
+      total_score: r.totalScore,
+      grade: r.grade,
+      remark: r.remark,
+    });
+  });
+
+  // Compute average per student
+  const finalResult = Object.values(studentResultMap).map((s: any) => {
+    const total = s.subjects.reduce((a: number, b: any) => a + b.total_score, 0);
+    const avg = total / s.subjects.length;
+    s.overall_average = Number(avg.toFixed(2));
+    return s;
+  });
+
+  // Sort by avg DESC & assign position
+  finalResult.sort((a: any, b: any) => b.overall_average - a.overall_average);
+
+  finalResult.forEach((s: any, i: number) => {
+    s.position =
+      i === 0 ? "1st" : i === 1 ? "2nd" : i === 2 ? "3rd" : `${i + 1}th`;
+  });
+
+  // Compute class average
+  const classAverage =
+    finalResult.reduce((sum: number, s: any) => sum + s.overall_average, 0) /
+    finalResult.length;
+
+  // Class info
+  const theClass = await ClassModel.findByPk(classId);
+
   // FINAL RESPONSE
-  new SuccessResponse("Report cards generated successfully", {
-    count: reportCards.length,
-    sessionId: activeSession.id,
-    term,
-    classId,
-    reportCards,
+  return new SuccessResponse("Report cards generated successfully", {
+    meta: {
+      session: activeSession.name,
+      term,
+      class: theClass?.name,
+      total_students: finalResult.length,
+      class_average: Number(classAverage.toFixed(2)),
+      data: finalResult,
+    },
   }).sendResponse(res);
 });
+
+
 
 
 // // ✅ GET /api/report-cards/class/:classId
@@ -336,3 +404,102 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
     reportCards,
   }).sendResponse(res);
 });
+
+// GET /api/v1/results/class/:classId?term=Term 1
+export const getClassResults = asyncHandler(async (req: Request, res: Response) => {
+  const { classId, term } = req.body;
+
+  if (!term) {
+    res.status(400).json({ message: "Term is required (Term 1, Term 2, Term 3)" });
+    return;
+  }
+
+  // 🔹 Get active session
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+
+  // 🔹 Get the class
+  const classRecord = await ClassModel.findByPk(classId);
+  if (!classRecord) {
+    res.status(404).json({ message: "Class not found" });
+    return;
+  }
+
+  // 🔹 Get students in this class + session
+  const students = await Student.findAll({
+    where: { classId, sessionId: activeSession.id },
+  });
+
+  if (students.length === 0) {
+    res.status(404).json({ message: "No students found in this class for this session" });
+    return;
+  }
+
+  // 🔹 Fetch all report cards for this class + term + session
+  const reportCards = await ReportCard.findAll({
+    where: {
+      classId,
+      term,
+      sessionId: activeSession.id,
+    },
+    include: [
+      { model: Subject, as: "subject", attributes: ["id", "name"] },
+    ],
+    order: [["studentId", "ASC"]],
+  });
+
+  // 🔹 Group results by student
+  const resultsMap: any = {};
+
+  for (const rc of reportCards) {
+    if (!resultsMap[rc.studentId]) {
+      const student = students.find((s) => s.id === rc.studentId);
+
+      resultsMap[rc.studentId] = {
+        studentId: student?.id,
+        name: student?.firstName + " " + student?.lastName,
+        subjects: [],
+        total_score_sum: 0,
+        subject_count: 0,
+      };
+    }
+
+    resultsMap[rc.studentId].subjects.push({
+      subject: rc.subject?.name,
+      testScore: rc.testScore,
+      examScore: rc.examScore,
+      grand_total: rc.totalScore,
+      grade: rc.grade,
+    });
+
+    resultsMap[rc.studentId].total_score_sum += rc.totalScore;
+    resultsMap[rc.studentId].subject_count += 1;
+  }
+
+  // 🔹 Convert to response format
+  const finalData = Object.values(resultsMap).map((item: any) => ({
+    studentId: item.studentId,
+    firstName: item.firstName,
+    subjects: item.subjects,
+    cumulative_average: Number((item.total_score_sum / item.subject_count).toFixed(2)),
+  }));
+
+  // ============================
+  // FINAL RESPONSE
+  // ============================
+  res.status(200).json({
+    status: "success",
+    meta: {
+      class: classRecord.name,
+      session: activeSession.name,
+      term,
+      student_count: finalData.length,
+    },
+    data: finalData,
+  });
+});
+
+

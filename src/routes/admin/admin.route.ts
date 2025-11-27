@@ -5,7 +5,7 @@ import { createClass, deleteClass } from "../../controllers/class/class.controll
 import { createSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
-import { generateReportCards, getClassReportCards, getStudentReportCard, regenerateReportCards} from "../../controllers/report_card/report_card.controller";
+import { generateReportCards, getClassReportCards, getClassResults, getStudentReportCard, regenerateReportCards} from "../../controllers/report_card/report_card.controller";
 import { createSession, getAllSessions, getSessionDetails } from "../../controllers/session/session.controller";
 
 const adminRoutes: Router = Router();
@@ -40,6 +40,6 @@ adminRoutes.post("/generate", protect, adminOrTeacher, generateReportCards);
 adminRoutes.post("/regenerate", protect, adminOrTeacher, regenerateReportCards);
 adminRoutes.get("/class-report/:classId", protect, adminOrTeacher, getClassReportCards);
 adminRoutes.get("/student-report/:studentId", protect, adminOrTeacher, getStudentReportCard);
-// adminRoutes.get("/student/:studentId", protect, adminOnly, getStudentReportCard);
+adminRoutes.get("/class-results", protect, adminOrTeacher, getClassResults);
 
 export default adminRoutes;

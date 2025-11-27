@@ -14,7 +14,7 @@ export interface TeacherAttributes {
 
 }
 
-export interface TeacherCreationAttributes extends Optional<TeacherAttributes, 'id'> {}
+export interface TeacherCreationAttributes extends Optional<TeacherAttributes, 'id'> { }
 
 class Teacher extends Model<TeacherAttributes, TeacherCreationAttributes> implements TeacherAttributes {
   public id!: number;
@@ -23,7 +23,6 @@ class Teacher extends Model<TeacherAttributes, TeacherCreationAttributes> implem
   public password!: string;
   public subject?: string;
   // public sessionId!: number;
-
 }
 
 Teacher.init(
