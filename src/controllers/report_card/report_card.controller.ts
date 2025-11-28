@@ -59,17 +59,17 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
     return;
   }
   // Prevent duplicate generation
-  const existing = await ReportCard.findOne({
-    where: { classId, term, sessionId: activeSession.id },
-  });
+  // const existing = await ReportCard.findOne({
+  //   where: { classId, term, sessionId: activeSession.id },
+  // });
 
-  if (existing) {
-    res.status(400).json({
-      message:
-        "Report cards have already been generated for this class, term, and session.",
-    });
-    return;
-  }
+  // if (existing) {
+  //   res.status(400).json({
+  //     message:
+  //       "Report cards have already been generated for this class, term, and session.",
+  //   });
+  //   return;
+  // }
 
   // Get students + subjects
   const students = await Student.findAll({
