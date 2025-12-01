@@ -7,6 +7,7 @@ import { registerTeacher } from "../../controllers/auth/teacher/teacher.controll
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
 import { generateReportCards, getClassReportCards, getClassResults, getStudentReportCard, regenerateReportCards} from "../../controllers/report_card/report_card.controller";
 import { createSession, getAllSessions, getSessionDetails } from "../../controllers/session/session.controller";
+import { createOrUpdatePsychomotor, getClassPsychomotor, getStudentPsychomotor } from "../../controllers/report_card/psychomotor_tests.controller";
 
 const adminRoutes: Router = Router();
 
@@ -41,5 +42,10 @@ adminRoutes.post("/regenerate", protect, adminOrTeacher, regenerateReportCards);
 adminRoutes.get("/class-report/:classId", protect, adminOrTeacher, getClassReportCards);
 adminRoutes.get("/student-report/:studentId", protect, adminOrTeacher, getStudentReportCard);
 adminRoutes.get("/class-results", protect, adminOrTeacher, getClassResults);
+//psychomotor details
+adminRoutes.post("/psychomotor", protect, adminOrTeacher, createOrUpdatePsychomotor);
+adminRoutes.get("/psychomotor/:studentId", protect, adminOrTeacher, getStudentPsychomotor);
+adminRoutes.get("/class-psychomotor/:classId", protect, adminOrTeacher, getClassPsychomotor);
+
 
 export default adminRoutes;

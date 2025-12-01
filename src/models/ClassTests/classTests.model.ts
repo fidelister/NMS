@@ -21,18 +21,17 @@ interface ClassTestAttributes {
 }
 
 interface ClassTestCreationAttributes
-  extends Optional<ClassTestAttributes, "id" | "totalMarkObtained"> {}
+  extends Optional<ClassTestAttributes, "id" | "totalMarkObtained"> { }
 
 class ClassTest
   extends Model<ClassTestAttributes, ClassTestCreationAttributes>
-  implements ClassTestAttributes
-{
+  implements ClassTestAttributes {
   public id!: number;
   public studentId!: number;
   public subjectId!: number;
   public classId!: number;
   public term!: string;
-    public sessionId!: number;
+  public sessionId!: number;
 
   public date!: Date;
   public test1?: number;
@@ -65,9 +64,9 @@ ClassTest.init(
       allowNull: false,
       references: { model: "classes", key: "id" },
       onDelete: "CASCADE",
-  onUpdate: "CASCADE",
+      onUpdate: "CASCADE",
     },
-     sessionId: {
+    sessionId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: { model: "sessions", key: "id" },
@@ -105,8 +104,10 @@ ClassTest.init(
 // ✅ Associations
 ClassTest.belongsTo(Student, { foreignKey: "studentId", as: "student" });
 ClassTest.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" });
-ClassTest.belongsTo(ClassModel, { foreignKey: "classId", as: "class", onDelete: "CASCADE",
-  onUpdate: "CASCADE"});
+ClassTest.belongsTo(ClassModel, {
+  foreignKey: "classId", as: "class", onDelete: "CASCADE",
+  onUpdate: "CASCADE"
+});
 
 ClassTest.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 Session.hasMany(ClassTest, { foreignKey: "sessionId", as: "class_tests" });
