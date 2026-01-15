@@ -38,11 +38,11 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
   } 
 
   // Prevent duplicate attendance for same student/date
-  const existing = await Attendance.findOne({ where: { studentId, date } });
-  if (existing) {
-    res.status(400).json({ message: 'Attendance already recorded for this student today' });
-    return;
-  }
+  // const existing = await Attendance.findOne({ where: { studentId, date } });
+  // if (existing) {
+  //   res.status(400).json({ message: 'Attendance already recorded for this student today' });
+  //   return;
+  // }
 
   const activeSession = await getActiveSession();
 
