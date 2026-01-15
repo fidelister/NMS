@@ -29,9 +29,7 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
     return;
   }
 
-  // ⛔ AUTHORIZATION RULE:
-  // ADMIN → always allowed
-  // TEACHER → allowed only if assigned to the class
+
   if (user.role === "teacher" && classInstance.teacherId !== user.id) {
     res.status(403).json({
       message: "You are not authorized to mark attendance for this class",

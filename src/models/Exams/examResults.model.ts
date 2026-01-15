@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
 import Exam from "./exam.model";
-import { Student } from "../association.model";
+import { Student, Subject } from "../association.model";
 import Session from "../session/session.model";
 
 interface ExamResultAttributes {
@@ -77,7 +77,7 @@ ExamResult.init(
         tableName: "exam_results",
     }
 );
-
+ExamResult.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" }); 
 ExamResult.belongsTo(Exam, { foreignKey: "examId", as: "exam" });
 ExamResult.belongsTo(Student, { foreignKey: "studentId", as: "student" });
 ExamResult.belongsTo(Session, { foreignKey: "sessionId", as: "session" });

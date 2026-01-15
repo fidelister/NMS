@@ -1,9 +1,15 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, protect } from "../../middlewares/authMiddleware";
-import { changeStudentPassword, deleteStudent, getAllStudents, getStudentById, getStudentProfile, loginStudent, registerStudent, updateStudentDetails } from "../../controllers/auth/student/student.controller";
+import { changeStudentPassword, deleteStudent, getAllStudents, getMyClassTests, getMyExamResults, getStudentById, getStudentDashboardStats, getStudentProfile, loginStudent, registerStudent, updateStudentDetails } from "../../controllers/auth/student/student.controller";
+import { getExamResults } from "../../controllers/exam/exam.controller";
+import { getStudentCard } from "../../controllers/report_card/report_card.controller";
+import { getStudentPsy } from "../../controllers/report_card/psychomotor_tests.controller";
 
 const studentRoutes: Router = Router();
-
+studentRoutes.get("/student-report", protect, getStudentCard);
+studentRoutes.get("/student-psy", protect, getStudentPsy);
+studentRoutes.get('/class', protect, getMyClassTests);  
+studentRoutes.get('/exam', protect, getMyExamResults);  
 studentRoutes.post('/register', protect, adminOnly, registerStudent);
 studentRoutes.post('/changePassword', protect, changeStudentPassword);
 studentRoutes.post('/login', loginStudent);
@@ -12,5 +18,7 @@ studentRoutes.get("/students",protect,adminOnly, getAllStudents);
 studentRoutes.get("/:id", protect,adminOnly,getStudentById);
 studentRoutes.delete("/:id", protect,adminOnly,deleteStudent);
 studentRoutes.put("/update", protect, adminOnly, updateStudentDetails);
+studentRoutes.get('/', protect, getStudentDashboardStats);  
+
 
 export default studentRoutes;

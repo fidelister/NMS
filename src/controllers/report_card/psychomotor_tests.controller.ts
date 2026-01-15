@@ -87,6 +87,14 @@ export const getStudentPsychomotor = asyncHandler(async (req, res) => {
 
   new SuccessResponse("Psychomotor fetched successfully", records).sendResponse(res);
 });
+export const getStudentPsy = asyncHandler(async (req: AuthRequest, res: Response) =>  {
+  const studentId  = req.user?.id;
+  const records = await PsychomotorAssessment.findAll({
+    where: { studentId },
+    include: [{ model: Session, as: "session" }],
+  });
+  new SuccessResponse("Psychomotor fetched successfully", records).sendResponse(res);
+});
 export const getClassPsychomotor = asyncHandler(async (req, res) => {
   const { classId } = req.params;
  const records = await PsychomotorAssessment.findAll({
@@ -104,4 +112,3 @@ export const getClassPsychomotor = asyncHandler(async (req, res) => {
     records
   ).sendResponse(res);
 });
-

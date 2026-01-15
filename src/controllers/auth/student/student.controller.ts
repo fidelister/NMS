@@ -9,6 +9,11 @@ import SuccessResponse, { generateToken, getActiveSession } from '../../../middl
 import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
 import Session from '../../../models/session/session.model';
+import Attendance from '../../../models/attendance/attendance.model';
+import { Op } from 'sequelize';
+import ClassTest from '../../../models/ClassTests/classTests.model';
+import { Subject } from '../../../models/association.model';
+import ExamResult from '../../../models/Exams/examResults.model';
 
 // 🟢 Register Student
 export const registerStudent = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -223,4 +228,229 @@ export const updateStudentDetails = asyncHandler(async (req: Request, res: Respo
             dateOfAdmission: student.dateOfAdmission,
         },
     }).sendResponse(res);
+});
+
+export const getStudentDashboardStats = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    const studentId = req.user?.id;
+
+    // ✅ Get active session
+    const activeSession = await Session.findOne({
+      where: { isActive: true },
+    });
+
+    if (!activeSession) {
+       res.status(400).json({
+        success: false,
+        message: "No active session found",
+      });
+    }
+
+    // ✅ Date range for current month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const endOfMonth = new Date();
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+    endOfMonth.setDate(0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
+    // ===============================
+    // 📌 ATTENDANCE (THIS MONTH)
+    // ===============================
+
+    const [presentThisMonth, absentThisMonth] = await Promise.all([
+      Attendance.count({
+        where: {
+          studentId,
+          sessionId: activeSession?.id,
+          status: "present",
+          date: {
+            [Op.between]: [startOfMonth, endOfMonth],
+          },
+        },
+      }),
+
+      Attendance.count({
+        where: {
+          studentId,
+          sessionId: activeSession?.id,
+          status: "absent",
+          date: {
+            [Op.between]: [startOfMonth, endOfMonth],
+          },
+        },
+      }),
+    ]);
+
+    // ===============================
+    // 📌 TOTAL PRESENT (SESSION)
+    // ===============================
+    const totalSessionPresent = await Attendance.count({
+      where: {
+        studentId,
+        sessionId: activeSession?.id,
+        status: "present",
+      },
+    });
+
+    // ===============================
+    // 📌 TESTS TAKEN (SESSION)
+    // ===============================
+    const testsTakenThisSession = await ClassTest.count({
+      where: {
+        studentId,
+        sessionId: activeSession?.id,
+      },
+    });
+
+    // ===============================
+    // ✅ FINAL RESPONSE
+    // ===============================
+    new SuccessResponse("Student dashboard stats fetched successfully", {
+      attendance: {
+        presentThisMonth,
+        absentThisMonth,
+        totalSessionPresent,
+      },
+      academics: {
+        testsTakenThisSession,
+      },
+      session: {
+        id: activeSession?.id,
+        name: activeSession?.name,
+      },
+    }).sendResponse(res);
+  }
+);
+export const getMyClassTests = asyncHandler(async (req: AuthRequest, res: Response) : Promise<void>=> {
+  const studentId = req.user?.id; // ✅ logged-in student
+  const { term } = req.body;
+
+  // ✅ Get active session
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+
+  // ✅ Fetch class tests
+  const tests = await ClassTest.findAll({
+    where: {
+      studentId,
+      sessionId: activeSession.id,
+      ...(term ? { term } : {}),
+    },
+    include: [
+      {
+        model: Subject,
+        as: "subject",
+        attributes: ["id", "name"],
+      },
+    ],
+    order: [["date", "ASC"]],
+  });
+
+  // ✅ Group by subject
+  const groupedBySubject: any[] = [];
+
+  for (const test of tests) {
+    const subjectId = test.subjectId;
+
+    let subjectEntry = groupedBySubject.find(
+      (s) => s.subjectId === subjectId
+    );
+
+    if (!subjectEntry) {
+      subjectEntry = {
+        subjectId,
+        subjectName: (test as any).subject?.name,
+        tests: [],
+      };
+      groupedBySubject.push(subjectEntry);
+    }
+
+    subjectEntry.tests.push({
+      test1: test.test1,
+      test2: test.test2,
+      test3: test.test3,
+      test4: test.test4,
+      totalMarkObtained: test.totalMarkObtained,
+      totalMarks: test.totalMarks,
+      date: test.date,
+      term: test.term,
+    });
+  }
+
+  new SuccessResponse("Class tests fetched successfully", {
+    session: {
+      id: activeSession.id,
+      name: activeSession.name,
+    },
+    totalTests: tests.length,
+    subjects: groupedBySubject,
+  }).sendResponse(res);
+});
+export const getMyExamResults = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+  const studentId = req.user.id; // ✅ logged-in student
+  const { term } = req.body;
+
+  // ✅ Get active session
+  const activeSession = await Session.findOne({ where: { isActive: true } });
+  if (!activeSession) {
+    res.status(400).json({ message: "No active session found" });
+    return;
+  }
+
+  // ✅ Fetch exam results
+  const examResults = await ExamResult.findAll({
+    where: {
+      studentId,
+      sessionId: activeSession?.id,
+      ...(term ? { term } : {}),
+    },
+    include: [
+      {
+        model: Subject,
+        as: "subject",
+        attributes: ["id", "name"],
+      },
+    ],
+    order: [["id", "ASC"]],
+  });
+
+  // ✅ Group by subject
+  const groupedResults: any[] = [];
+
+  for (const result of examResults) {
+    const subjectId = result.subjectId;
+
+    let subjectEntry = groupedResults.find(
+      (s) => s.subjectId === subjectId
+    );
+
+    if (!subjectEntry) {
+      subjectEntry = {
+        subjectId,
+        subjectName: (result as any).subject?.name,
+        exams: [],
+      };
+      groupedResults.push(subjectEntry);
+    }
+
+    subjectEntry.exams.push({
+      marksObtained: result.marksObtained,
+      totalMarks: 60,
+      term: result.term,
+    });
+  }
+
+  new SuccessResponse("Exam results fetched successfully", {
+    session: {
+      id: activeSession?.id,
+      name: activeSession?.name,
+    },
+    totalSubjects: groupedResults.length,
+    subjects: groupedResults,
+  }).sendResponse(res);
 });
