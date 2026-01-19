@@ -4,6 +4,7 @@ import { changeStudentPassword, deleteStudent, getAllStudents, getMyClassTests, 
 import { getExamResults } from "../../controllers/exam/exam.controller";
 import { getStudentCard } from "../../controllers/report_card/report_card.controller";
 import { getStudentPsy } from "../../controllers/report_card/psychomotor_tests.controller";
+import { getStudentTimetable } from "../../controllers/timetable/timetable.controller";
 
 const studentRoutes: Router = Router();
 studentRoutes.get("/student-report", protect, getStudentCard);
@@ -19,6 +20,7 @@ studentRoutes.get("/:id", protect,adminOnly,getStudentById);
 studentRoutes.delete("/:id", protect,adminOnly,deleteStudent);
 studentRoutes.put("/update", protect, adminOnly, updateStudentDetails);
 studentRoutes.get('/', protect, getStudentDashboardStats);  
+studentRoutes.get('/timetable/classes', protect, getStudentTimetable);  
 
 
 export default studentRoutes;
