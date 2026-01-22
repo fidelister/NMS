@@ -1,6 +1,6 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, protect } from "../../middlewares/authMiddleware";
-import { changeStudentPassword, deleteStudent, getAllStudents, getMyClassTests, getMyExamResults, getStudentById, getStudentDashboardStats, getStudentProfile, loginStudent, registerStudent, updateStudentDetails } from "../../controllers/auth/student/student.controller";
+import { changeStudentPassword, deleteStudent, getAllStudents, getMyClassTests, getMyExamResults, getStudentAssignments, getStudentById, getStudentDashboardStats, getStudentProfile, loginStudent, registerStudent, updateStudentDetails } from "../../controllers/auth/student/student.controller";
 import { getExamResults } from "../../controllers/exam/exam.controller";
 import { getStudentCard } from "../../controllers/report_card/report_card.controller";
 import { getStudentPsy } from "../../controllers/report_card/psychomotor_tests.controller";
@@ -21,6 +21,7 @@ studentRoutes.delete("/:id", protect,adminOnly,deleteStudent);
 studentRoutes.put("/update", protect, adminOnly, updateStudentDetails);
 studentRoutes.get('/', protect, getStudentDashboardStats);  
 studentRoutes.get('/timetable/classes', protect, getStudentTimetable);  
+studentRoutes.get('/assignment/student', protect, getStudentAssignments);  
 
 
 export default studentRoutes;

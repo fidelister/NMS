@@ -12,8 +12,9 @@ import Session from '../../../models/session/session.model';
 import Attendance from '../../../models/attendance/attendance.model';
 import { Op } from 'sequelize';
 import ClassTest from '../../../models/ClassTests/classTests.model';
-import { Subject } from '../../../models/association.model';
+import { Subject, Teacher } from '../../../models/association.model';
 import ExamResult from '../../../models/Exams/examResults.model';
+import Assignment from '../../../models/assignment/assignment.model';
 
 // 🟢 Register Student
 export const registerStudent = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -454,3 +455,50 @@ export const getMyExamResults = asyncHandler(async (req: AuthRequest, res: Respo
     subjects: groupedResults,
   }).sendResponse(res);
 });
+
+export const getStudentAssignments= asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    const studentId = req.user?.id;
+
+    const student = await Student.findByPk(studentId);
+    if (!student || !student.classId) {
+       res.status(400).json({
+        message: "Student not assigned to a class",
+      });
+      return;
+    }
+
+    const activeSession = await Session.findOne({
+      where: { isActive: true },
+    });
+
+    if (!activeSession) {
+       res.status(400).json({
+        message: "No active session",
+      });
+      return;
+    }
+
+    const assignments = await Assignment.findAll({
+      where: {
+        classId: student.classId,
+        sessionId: activeSession.id,
+      },
+      include: [
+        {
+          model: Subject,
+          as: "subject",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Teacher,
+          as: "teacher",
+          attributes: ["id", "name"],
+        },
+      ],
+      order: [["submissionDate", "ASC"]],
+    });
+
+    new SuccessResponse("Student assignments fetched successfully", assignments)
+      .sendResponse(res);
+  }
+);

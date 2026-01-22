@@ -8,6 +8,9 @@ import { ERRORCODES } from '../../../exceptions/root';
 import SuccessResponse, { generateToken, getActiveSession } from '../../../middlewares/helper';
 import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
+import Session from '../../../models/session/session.model';
+import { ClassModel, Subject } from '../../../models/association.model';
+import Assignment from '../../../models/assignment/assignment.model';
 
 // 🟢 Register Teacher
 export const registerTeacher = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -172,3 +175,101 @@ export const updateTeacherDetails = asyncHandler(async (req: Request, res: Respo
     },
   }).sendResponse(res);
 });
+
+export const createAssignment = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
+    const teacherId = req.user?.id;
+    const {
+      title,
+      description,
+      submissionDate,
+      classId,
+      subjectId,
+    } = req.body;
+
+    if (!title || !description || !submissionDate || !classId || !subjectId) {
+       res.status(400).json({ message: "All fields are required" });
+       return;
+    }
+
+    // ✅ Active session
+    const activeSession = await Session.findOne({
+      where: { isActive: true },
+    });
+
+    if (!activeSession) {
+       res.status(400).json({ message: "No active session found" });
+       return;
+    }
+
+    // ✅ Check teacher is assigned to subject
+    const teacherSubject = await Subject.findOne({
+      where: {
+        teacherId
+      },
+    });
+
+    if (!teacherSubject) {
+       res.status(403).json({
+        message: "You are not assigned to this subject",
+      });
+      return;
+    }
+
+    const assignment = await Assignment.create({
+      title,
+      description,
+      submissionDate,
+      classId,
+      subjectId,
+      teacherId,
+      sessionId: activeSession.id,
+    });
+
+    new SuccessResponse("Assignment created successfully", assignment)
+      .sendResponse(res);
+  }
+);
+export const getTeacherAssignments = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> =>  {
+    const teacherId = req.user?.id;
+    const assignments = await Assignment.findAll({
+      where: { teacherId },
+      include: [
+        { model: Subject, as: "subject", attributes: ["id", "name"] },
+        { model: ClassModel, as: "class", attributes: ["id", "name"] },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    new SuccessResponse("Assignments fetched successfully", assignments)
+      .sendResponse(res);
+  }
+);
+export const updateAssignment = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> =>  {
+    const teacherId = req.user?.id;
+    const { id } = req.params;
+    const { title, description, submissionDate } = req.body;
+
+    const assignment = await Assignment.findOne({
+      where: { id, teacherId },
+    });
+
+    if (!assignment) {
+       res.status(404).json({
+        message: "Assignment not found or unauthorized",
+      });
+      return;
+    }
+
+    assignment.title = title ?? assignment.title;
+    assignment.description = description ?? assignment.description;
+    assignment.submissionDate =
+      submissionDate ?? assignment.submissionDate;
+
+    await assignment.save();
+
+    new SuccessResponse("Assignment updated successfully", assignment)
+      .sendResponse(res);
+  }
+);
+
+

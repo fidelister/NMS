@@ -1,6 +1,6 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
-import { changeTeacherPassword, deleteTeacher, getAllTeachers, getTeacherById, getTeacherProfile, loginTeacher, registerTeacher, updateTeacherDetails } from "../../controllers/auth/teacher/teacher.controller";
+import { changeTeacherPassword, createAssignment, deleteTeacher, getAllTeachers, getTeacherAssignments, getTeacherById, getTeacherProfile, loginTeacher, registerTeacher, updateAssignment, updateTeacherDetails } from "../../controllers/auth/teacher/teacher.controller";
 import { getClassAttendance, getStudentAttendance, recordAttendance, updateAttendance } from "../../controllers/attendance/attendance.controller";
 import { createClassTest, getClassTestsByClass, getClassTestsByStudent, updateClassTest } from "../../controllers/classTests/classTests.controller";
 import { createExam, getAllExams, getExamDetails, getExamResults, updateExamResult, uploadExamResults } from "../../controllers/exam/exam.controller";
@@ -36,5 +36,8 @@ teacherRoutes.get("/api/exams/:id/results",protect, adminOrTeacher,getExamResult
 teacherRoutes.put("/api/exams/:id/results/:resultId",protect, adminOrTeacher,updateExamResult);
 
 teacherRoutes.get("/", protect, adminOrTeacher, getTeacherTimetable);
+teacherRoutes.post("/assignment/create", protect, adminOrTeacher, createAssignment);
+teacherRoutes.get("/assignment/get", protect, adminOrTeacher, getTeacherAssignments);
+teacherRoutes.patch("/assignment/update/:id", protect, adminOrTeacher, updateAssignment)
 
 export default teacherRoutes;
