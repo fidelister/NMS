@@ -483,7 +483,7 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
   const { classId, term } = req.body;
 
   if (!term) {
-    res.status(400).json({ message: "Term is required (Term 1, Term 2, Term 3)" });
+    res.status(400).json({ message: "Term is required (term1, term2, term3)" });
     return;
   }
 

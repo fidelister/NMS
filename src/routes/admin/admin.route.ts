@@ -49,7 +49,7 @@ adminRoutes.get("/psychomotor/:studentId", protect, adminOrTeacher, getStudentPs
 adminRoutes.get("/class-psychomotor/:classId", protect, adminOrTeacher, getClassPsychomotor);
 //timetable
 adminRoutes.post("/timetable", protect, adminOnly, createTimetable)
-adminRoutes.get("/timetable", protect, adminOnly, getClassTimetable)
+adminRoutes.get("/timetable/:classId/:term", protect, adminOnly, getClassTimetable)
 adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)    
 
 export default adminRoutes;

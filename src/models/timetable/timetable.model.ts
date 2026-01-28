@@ -9,7 +9,7 @@ interface TimetableAttributes {
   subjectId: number;
   teacherId: number;
   sessionId: number;
-  term: "Term 1" | "Term 2" | "Term 3";
+  term: "term1" | "term2" | "term3";
   day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday";
   period: number; // 1 – 7
   startTime: string; // "08:00"
@@ -27,7 +27,7 @@ class Timetable
   public subjectId!: number;
   public teacherId!: number;
   public sessionId!: number;
-  public term!: "Term 1" | "Term 2" | "Term 3";
+  public term!: "term1" | "term2" | "term3";
   public day!: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday";
   public period!: number;
   public startTime!: string;
@@ -63,7 +63,7 @@ Timetable.init(
     },
 
     term: {
-      type: DataTypes.ENUM("Term 1", "Term 2", "Term 3"),
+      type: DataTypes.ENUM("term1", "term2", "term3"),
       allowNull: false,
     },
 

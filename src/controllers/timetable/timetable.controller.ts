@@ -85,10 +85,9 @@ export const createTimetable = asyncHandler(async (req: Request, res: Response):
   new SuccessResponse("Timetable created successfully", timetable).sendResponse(res);
 });
 export const getClassTimetable =  asyncHandler(async (req: Request, res: Response): Promise<void>=> {
-  const { classId, term } = req.body;
-
+  const { classId, term } = req.params;
+  
   const activeSession = await Session.findOne({ where: { isActive: true } });
-
   const timetable = await Timetable.findAll({
     where: {
       classId,  

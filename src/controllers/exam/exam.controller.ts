@@ -5,6 +5,7 @@ import Exam from "../../models/Exams/exam.model";
 import ExamResult from "../../models/Exams/examResults.model";
 import { Student, Subject } from "../../models/association.model";
 import Session from "../../models/session/session.model";
+import { log } from "console";
 
 // ✅ Create New Exam (Admin)
 export const createExam = asyncHandler(async (req: Request, res: Response) => {
@@ -86,56 +87,88 @@ export const getExamDetails = asyncHandler(async (req: Request, res: Response) =
 });
 
 // ✅ Upload Exam Results (Teacher)
-export const uploadExamResults = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { results } = req.body;
+export const uploadExamResults = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { results } = req.body;
 
-  const exam = await Exam.findByPk(id);
-  if (!exam) {
-    throw new Error("Exam not found");
-  }
+    if (!Array.isArray(results) || results.length === 0) {
+      res.status(400).json({ message: "Results array is required" });
+      return;
+    }
 
-  // 🔹 Get active session ONCE
-  const activeSession = await getActiveSession();
-  if (!activeSession) {
-    throw new Error("No active session found");
-  }
+    const exam = await Exam.findByPk(id);
+    if (!exam) {
+      res.status(404).json({ message: "Exam not found" });
+      return;
+    }
 
-  const createdResults = await Promise.all(
-    results.map(async (result: { studentId: number; marksObtained: number; subjectId: number; term: string }) => {
+    const activeSession = await getActiveSession();
+    if (!activeSession) {
+      res.status(400).json({ message: "No active session found" });
+      return;
+    }
 
-      if (result.marksObtained < 0 || result.marksObtained > 60) {
-        throw new Error(`Invalid mark for Student ID ${result.studentId}. Marks must be between 0 and 60.`);
+    const createdResults = [];
+
+    for (const result of results) {
+      const { studentId, subjectId, marksObtained, term } = result;
+
+      if (!["term1", "term2", "term3"].includes(term)) {
+        throw new Error(`Invalid term value: ${term}`);
+      }
+
+      if (marksObtained < 0 || marksObtained > 60) {
+        throw new Error(
+          `Invalid marks for student ${studentId}. Must be 0–60`
+        );
+      }
+
+      const student = await Student.findByPk(studentId);
+      if (!student) {
+        throw new Error(`Student ${studentId} not found`);
+      }
+
+      const subject = await Subject.findByPk(subjectId);
+      if (!subject) {
+        throw new Error(`Subject ${subjectId} not found`);
       }
 
       const existing = await ExamResult.findOne({
         where: {
           examId: exam.id,
-          studentId: result.studentId,
-          subjectId: result.subjectId,
-          term: result.term,
+          studentId,
+          subjectId,
+          term,
+          sessionId: activeSession.id,
         },
       });
 
       if (existing) {
         throw new Error(
-          `Result already uploaded for Student ID ${result.studentId} in this subject and term.`
+          `Result already exists for student ${studentId} (${term})`
         );
       }
 
-      return ExamResult.create({
+      const examResult = await ExamResult.create({
         examId: exam.id,
-        subjectId: result.subjectId,
-        studentId: result.studentId,
-        term: result.term,
-        marksObtained: result.marksObtained,
-        sessionId: activeSession.id, // ← Correct session placement
+        studentId,
+        subjectId,
+        term,
+        marksObtained,
+        sessionId: activeSession.id,
       });
-    })
-  );
 
-  new SuccessResponse("Exam results uploaded successfully", createdResults).sendResponse(res);
-});
+      createdResults.push(examResult);
+    }
+
+    new SuccessResponse(
+      "Exam results uploaded successfully",
+      createdResults
+    ).sendResponse(res);
+  }
+);
+
 
 
 // ✅ Get Exam Results

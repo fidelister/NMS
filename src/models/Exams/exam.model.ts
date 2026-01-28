@@ -53,7 +53,7 @@ Exam.init(
             references: { model: "subjects", key: "id" },
         },
         term: {
-            type: DataTypes.ENUM("Term 1", "Term 2", "Term 3"),
+            type: DataTypes.ENUM("term1", "term2", "term3"),
             allowNull: false,
         },
          sessionId: {
