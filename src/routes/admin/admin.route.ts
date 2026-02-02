@@ -1,6 +1,6 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
-import { assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
+import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
 import { createClass, deleteClass } from "../../controllers/class/class.controller";
 import { createSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
@@ -16,6 +16,8 @@ adminRoutes.post('/register', registerAdmin);
 adminRoutes.post('/login', loginAdmin);
 adminRoutes.post('/create-session', protect, adminOnly, createSession);
 adminRoutes.get('/sessions', protect, adminOnly, getAllSessions);
+adminRoutes.get('/active-session', protect, adminOnly, activeSession);
+
 adminRoutes.get(
     '/sessions/:sessionId/details',
     protect,

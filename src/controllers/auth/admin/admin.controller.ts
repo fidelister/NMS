@@ -435,3 +435,20 @@ export const getTeacherSubjects = asyncHandler(async (req: Request, res: Respons
     subjects,
   }).sendResponse(res);
 });
+export const activeSession = asyncHandler(
+  async (req: Request, res: Response) => {
+    const activeSession = await Session.findOne({
+      where: { isActive: true },
+    });
+
+    if (!activeSession) {
+      res.status(404).json({ message: "No active session found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: activeSession,
+    });
+  }
+);
