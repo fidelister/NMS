@@ -1,6 +1,6 @@
 
 import asyncHandler from 'express-async-handler';
-import { ClassModel, Subject } from '../../models/association.model';
+import { ClassModel, Subject, Teacher } from '../../models/association.model';
 import { BadRequestsException } from '../../exceptions/bad-request-exceptions';
 import SuccessResponse, { getActiveSession } from '../../middlewares/helper';
 import { ERRORCODES } from '../../exceptions/root';
@@ -34,3 +34,37 @@ export const createSubject = asyncHandler(async (req: Request, res: Response): P
         subject: newSubject,
     }).sendResponse(res);
 });
+export const updateSubject = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { name, teacherId } = req.body;
+
+    const subjectData = await Subject.findByPk(id);
+
+    if (!subjectData) {
+      res.status(404).json({ message: "Subject not found" });
+      return;
+    }
+    // ✅ Update subject name
+    if (typeof name === "string" && name.trim() !== "") {
+      subjectData.name = name;
+    }
+    
+    if (teacherId !== undefined) {
+      if (teacherId === null) {
+    (subjectData.teacherId as number | null) = null;
+      } else {
+        const teacherExists = await Teacher.findByPk(teacherId);
+        if (!teacherExists) {
+          res.status(400).json({ message: "Teacher does not exist" });
+          return;
+        }
+        subjectData.teacherId = teacherId;
+      }
+    }
+
+    await subjectData.save();
+
+    new SuccessResponse("Subject updated successfully", subjectData).sendResponse(res);
+  }
+);

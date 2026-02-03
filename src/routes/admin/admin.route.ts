@@ -2,7 +2,7 @@ import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
 import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
 import { createClass, deleteClass, updateClass } from "../../controllers/class/class.controller";
-import { createSubject } from "../../controllers/subject/subject.controller";
+import { createSubject, updateSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
 import { generateReportCards, getClassReportCards, getClassResults, getStudentReportCard, regenerateReportCards } from "../../controllers/report_card/report_card.controller";
@@ -55,5 +55,7 @@ adminRoutes.get("/timetable/:classId/:term", protect, adminOnly, getClassTimetab
 adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)    
 
 adminRoutes.put("/classes/:id", protect, adminOrTeacher, updateClass);
+adminRoutes.put("/subjects/:id", protect, adminOrTeacher, updateSubject);
+
 
 export default adminRoutes;
