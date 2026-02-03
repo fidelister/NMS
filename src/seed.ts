@@ -12,3 +12,5 @@
 //     process.exit(1);
 //   }
 // })();
+
+//to run this file, use the command: ts-node src/seed.ts
