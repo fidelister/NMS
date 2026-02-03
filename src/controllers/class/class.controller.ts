@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import { ClassModel, Student } from '../../models/association.model';
+import { ClassModel, Student, Teacher } from '../../models/association.model';
 import { BadRequestsException } from '../../exceptions/bad-request-exceptions';
 import SuccessResponse, { getActiveSession } from '../../middlewares/helper';
 import { ERRORCODES } from '../../exceptions/root';
@@ -69,5 +69,42 @@ export const deleteClass = asyncHandler(async (req: AuthRequest, res: Response):
     message: "Class deleted successfully.",
   });
 });
+
+export const updateClass = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { name, teacherId } = req.body;
+
+    const classData = await ClassModel.findByPk(id);
+
+    if (!classData) {
+      res.status(404).json({ message: "Class not found" });
+      return;
+    }
+
+    // ✅ Update class name
+    if (typeof name === "string" && name.trim() !== "") {
+      classData.name = name;
+    }
+
+    
+    if (teacherId !== undefined) {
+      if (teacherId === null) {
+    (classData.teacherId as number | null) = null;
+      } else {
+        const teacherExists = await Teacher.findByPk(teacherId);
+        if (!teacherExists) {
+          res.status(400).json({ message: "Teacher does not exist" });
+          return;
+        }
+        classData.teacherId = teacherId;
+      }
+    }
+
+    await classData.save();
+
+    new SuccessResponse("Class updated successfully", classData).sendResponse(res);
+  }
+);
 
 

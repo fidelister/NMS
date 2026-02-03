@@ -1,7 +1,7 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
 import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
-import { createClass, deleteClass } from "../../controllers/class/class.controller";
+import { createClass, deleteClass, updateClass } from "../../controllers/class/class.controller";
 import { createSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
@@ -53,5 +53,7 @@ adminRoutes.get("/class-psychomotor/:classId", protect, adminOrTeacher, getClass
 adminRoutes.post("/timetable", protect, adminOnly, createTimetable)
 adminRoutes.get("/timetable/:classId/:term", protect, adminOnly, getClassTimetable)
 adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)    
+
+adminRoutes.put("/classes/:id", protect, adminOrTeacher, updateClass);
 
 export default adminRoutes;
