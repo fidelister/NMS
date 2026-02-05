@@ -72,39 +72,48 @@ export const deleteClass = asyncHandler(async (req: AuthRequest, res: Response):
 
 export const updateClass = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { id } = req.params;
-    const { name, teacherId } = req.body;
+    const updates = req.body;
 
-    const classData = await ClassModel.findByPk(id);
-
-    if (!classData) {
-      res.status(404).json({ message: "Class not found" });
+    if (!Array.isArray(updates)) {
+      res.status(400).json({ message: "Body must be an array" });
       return;
     }
 
-    // ✅ Update class name
-    if (typeof name === "string" && name.trim() !== "") {
-      classData.name = name;
-    }
+    const results = [];
 
-    
-    if (teacherId !== undefined) {
-      if (teacherId === null) {
-    (classData.teacherId as number | null) = null;
-      } else {
-        const teacherExists = await Teacher.findByPk(teacherId);
-        if (!teacherExists) {
-          res.status(400).json({ message: "Teacher does not exist" });
-          return;
-        }
-        classData.teacherId = teacherId;
+    for (const item of updates) {
+      const { id, name, teacherId } = item;
+
+      const classData = await ClassModel.findByPk(id);
+
+      if (!classData) {
+        continue; // skip if not found
       }
+
+      // update name
+      if (typeof name === "string" && name.trim() !== "") {
+        classData.name = name;
+      }
+
+      // update teacher
+      if (teacherId !== undefined) {
+        if (teacherId === null) {
+          (classData.teacherId as number | null) = null;
+        } else {
+          const teacherExists = await Teacher.findByPk(teacherId);
+          if (!teacherExists) continue;
+
+          classData.teacherId = teacherId;
+        }
+      }
+
+      await classData.save();
+      results.push(classData);
     }
 
-    await classData.save();
-
-    new SuccessResponse("Class updated successfully", classData).sendResponse(res);
+    new SuccessResponse("Classes updated successfully", results).sendResponse(res);
   }
 );
+
 
 

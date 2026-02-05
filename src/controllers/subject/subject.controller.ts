@@ -36,35 +36,43 @@ export const createSubject = asyncHandler(async (req: Request, res: Response): P
 });
 export const updateSubject = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { id } = req.params;
-    const { name, teacherId } = req.body;
+    const updates = req.body;
 
-    const subjectData = await Subject.findByPk(id);
-
-    if (!subjectData) {
-      res.status(404).json({ message: "Subject not found" });
+    if (!Array.isArray(updates)) {
+      res.status(400).json({ message: "Body must be an array of objects" });
       return;
     }
-    // ✅ Update subject name
-    if (typeof name === "string" && name.trim() !== "") {
-      subjectData.name = name;
-    }
-    
-    if (teacherId !== undefined) {
-      if (teacherId === null) {
-    (subjectData.teacherId as number | null) = null;
-      } else {
-        const teacherExists = await Teacher.findByPk(teacherId);
-        if (!teacherExists) {
-          res.status(400).json({ message: "Teacher does not exist" });
-          return;
-        }
-        subjectData.teacherId = teacherId;
+
+    const results = [];
+
+    for (const item of updates) {
+      const { id, name, teacherId } = item;
+
+      const subjectData = await Subject.findByPk(id);
+
+      if (!subjectData) continue;
+
+      // ✅ Update name
+      if (typeof name === "string" && name.trim() !== "") {
+        subjectData.name = name;
       }
+
+      // ✅ Update teacher
+      if (teacherId !== undefined) {
+        if (teacherId === null) {
+          (subjectData.teacherId as number | null) = null;
+        } else {
+          const teacherExists = await Teacher.findByPk(teacherId);
+          if (!teacherExists) continue;
+
+          subjectData.teacherId = teacherId;
+        }
+      }
+
+      await subjectData.save();
+      results.push(subjectData);
     }
 
-    await subjectData.save();
-
-    new SuccessResponse("Subject updated successfully", subjectData).sendResponse(res);
+    new SuccessResponse("Subjects updated successfully", results).sendResponse(res);
   }
 );

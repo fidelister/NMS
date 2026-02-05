@@ -245,7 +245,7 @@ export const getAllClasses = asyncHandler(async (req: Request, res: Response): P
       {
         model: Student,
         as: 'students',
-        attributes: ['id', 'firstName', 'lastName', 'email', 'dateOfAdmission', 'nmsNumber'],
+        attributes: ['id', 'firstName', 'lastName','gender', 'email', 'dateOfAdmission', 'nmsNumber'],
       }
     ]
   });

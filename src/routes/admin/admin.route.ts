@@ -54,8 +54,8 @@ adminRoutes.post("/timetable", protect, adminOnly, createTimetable)
 adminRoutes.get("/timetable/:classId/:term", protect, adminOnly, getClassTimetable)
 adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)    
 
-adminRoutes.put("/classes/:id", protect, adminOrTeacher, updateClass);
-adminRoutes.put("/subjects/:id", protect, adminOrTeacher, updateSubject);
+adminRoutes.put("/classes", protect, adminOrTeacher, updateClass);
+adminRoutes.put("/subjects", protect, adminOrTeacher, updateSubject);
 
 
 export default adminRoutes;
