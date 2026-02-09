@@ -9,6 +9,7 @@ import { generateReportCards, getClassReportCards, getClassResults, getStudentRe
 import { createSession, getAllSessions, getSessionDetails } from "../../controllers/session/session.controller";
 import { createOrUpdatePsychomotor, getClassPsychomotor, getStudentPsychomotor } from "../../controllers/report_card/psychomotor_tests.controller";
 import { createTimetable, getClassTimetable, updateTimetable } from "../../controllers/timetable/timetable.controller";
+import { getAssignmentsBySession, getAttendanceBySession, getExamResultsBySession, getExamsBySession, getReportCardsBySession, getTestScoresBySession, getTimetableBySession } from "../../controllers/sessionRecords/sessionRecords.controller";
 
 const adminRoutes: Router = Router();
 
@@ -57,5 +58,11 @@ adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)
 adminRoutes.put("/classes", protect, adminOrTeacher, updateClass);
 adminRoutes.put("/subjects", protect, adminOrTeacher, updateSubject);
 
-
+adminRoutes.get("/sessions/:sessionId/exams", protect, adminOnly, getExamsBySession);
+adminRoutes.get("/sessions/:sessionId/exam-results", protect, adminOnly, getExamResultsBySession);
+adminRoutes.get("/sessions/:sessionId/attendance", protect, adminOnly, getAttendanceBySession);
+adminRoutes.get("/sessions/:sessionId/assignments", protect, adminOnly, getAssignmentsBySession);
+adminRoutes.get("/sessions/:sessionId/class-tests", protect, adminOnly, getTestScoresBySession);
+adminRoutes.get("/sessions/:sessionId/report-cards", protect, adminOnly, getReportCardsBySession);
+adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetableBySession);
 export default adminRoutes;

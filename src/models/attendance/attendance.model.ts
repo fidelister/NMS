@@ -11,7 +11,7 @@ export interface AttendanceAttributes {
   teacherId: number;
   date: Date;
   week: number;
-  status: "present" | "absent";
+  status: "present" | "absent" | "late" ;
   sessionId: number;
 }
 
@@ -25,7 +25,7 @@ class Attendance extends Model<AttendanceAttributes, AttendanceCreationAttribute
   public teacherId!: number;
   public date!: Date;
   public week!: number;
-  public status!: "present" | "absent";
+  public status!: "present" | "absent"| "late" ;
   public sessionId!: number;
 }
 
@@ -41,7 +41,7 @@ Attendance.init(
     teacherId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     date: { type: DataTypes.DATEONLY, allowNull: false },
     week: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    status: { type: DataTypes.ENUM("present", "absent"), allowNull: false },
+    status: { type: DataTypes.ENUM("present", "absent", "late"), allowNull: false },
     sessionId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,

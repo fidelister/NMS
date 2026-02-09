@@ -21,10 +21,10 @@ export const connectDB = async (): Promise<void> => {
         console.log('✅ Database connected successfully.');
         // ✅ Sync models here
         await import('../models/association.model')
-        // await sequelize.sync({ alter: true });
+        await sequelize.sync({ alter: true });
 
         // await sequelize.sync({ force: true });
-        await sequelize.sync({ force: false });
+        // await sequelize.sync({ force: false });
         console.log('✅ All models synchronized successfully.');
 
     } catch (error) {
