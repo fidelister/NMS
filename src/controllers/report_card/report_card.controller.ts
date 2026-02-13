@@ -107,8 +107,7 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
       const testScoresArray = [
         classTest?.test1 ?? 0,
         classTest?.test2 ?? 0,
-        classTest?.test3 ?? 0,
-        classTest?.test4 ?? 0,
+      
       ];
 
       const testScore = classTest?.totalMarkObtained ?? 0;
@@ -136,6 +135,7 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
       generatedCards.push({
         studentId: student.id,
         studentName: student?.firstName + " " + student?.lastName,
+        nmsNumber: student.nmsNumber, 
         subjectId: subject.id,
         subjectName: subject.name,
         assessments: testScoresArray,
@@ -163,6 +163,7 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
     if (!studentResultMap[r.studentId]) {
       studentResultMap[r.studentId] = {
         student_id: r.studentId,
+        nmsNumber: r.nmsNumber,
         student_name: r.studentName,
         overall_average: 0,
         position: "", // <-- FIXED: Add position before sorting
@@ -479,11 +480,106 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
 });
 
 // GET /api/v1/results/class/:classId?term=Term 1
+// export const getClassResults = asyncHandler(async (req: Request, res: Response) => {
+//   const { classId, term } = req.body;
+
+//   if (!term) {
+//     res.status(400).json({ message: "Term is required (term1, term2, term3)" });
+//     return;
+//   }
+
+//   // 🔹 Get active session
+//   const activeSession = await Session.findOne({ where: { isActive: true } });
+//   if (!activeSession) {
+//     res.status(400).json({ message: "No active session found" });
+//     return;
+//   }
+
+//   // 🔹 Get the class
+//   const classRecord = await ClassModel.findByPk(classId);
+//   if (!classRecord) {
+//     res.status(404).json({ message: "Class not found" });
+//     return;
+//   }
+
+//   // 🔹 Get students in this class + session
+//   const students = await Student.findAll({
+//     where: { classId, sessionId: activeSession.id },
+//   });
+
+//   if (students.length === 0) {
+//     res.status(404).json({ message: "No students found in this class for this session" });
+//     return;
+//   }
+
+//   // 🔹 Fetch all report cards for this class + term + session
+//   const reportCards = await ReportCard.findAll({
+//     where: {
+//       classId,
+//       term,
+//       sessionId: activeSession.id,
+//     },
+//     include: [
+//       { model: Subject, as: "subject", attributes: ["id", "name"] },
+//     ],
+//     order: [["studentId", "ASC"]],
+//   });
+
+//   // 🔹 Group results by student
+//   const resultsMap: any = {};
+
+//   for (const rc of reportCards) {
+//     if (!resultsMap[rc.studentId]) {
+//       const student = students.find((s) => s.id === rc.studentId);
+
+//       resultsMap[rc.studentId] = {
+//         studentId: student?.id,
+//         name: student?.firstName + " " + student?.lastName,
+//         subjects: [],
+//         total_score_sum: 0,
+//         subject_count: 0,
+//       };
+//     }
+
+//     resultsMap[rc.studentId].subjects.push({
+//       subject: rc.subject?.name,
+//       testScore: rc.testScore,
+//       examScore: rc.examScore,
+//       grand_total: rc.totalScore,
+//       grade: rc.grade,
+//     });
+
+//     resultsMap[rc.studentId].total_score_sum += rc.totalScore;
+//     resultsMap[rc.studentId].subject_count += 1;
+//   }
+
+//   // 🔹 Convert to response format
+//   const finalData = Object.values(resultsMap).map((item: any) => ({
+//     studentId: item.studentId,
+//     firstName: item.firstName,
+//     subjects: item.subjects,
+//     cumulative_average: Number((item.total_score_sum / item.subject_count).toFixed(2)),
+//   }));
+
+//   // ============================
+//   // FINAL RESPONSE
+//   // ============================
+//   res.status(200).json({
+//     status: "success",
+//     meta: {
+//       class: classRecord.name,
+//       session: activeSession.name,
+//       term,
+//       student_count: finalData.length,
+//     },
+//     data: finalData,
+//   });
+// });
 export const getClassResults = asyncHandler(async (req: Request, res: Response) => {
   const { classId, term } = req.body;
 
   if (!term) {
-    res.status(400).json({ message: "Term is required (term1, term2, term3)" });
+    res.status(400).json({ message: "Term is required (term1, term2)" });
     return;
   }
 
@@ -511,7 +607,7 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
     return;
   }
 
-  // 🔹 Fetch all report cards for this class + term + session
+  // 🔹 Fetch all report cards
   const reportCards = await ReportCard.findAll({
     where: {
       classId,
@@ -521,10 +617,41 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
     include: [
       { model: Subject, as: "subject", attributes: ["id", "name"] },
     ],
-    order: [["studentId", "ASC"]],
   });
 
-  // 🔹 Group results by student
+  // ================================
+  // 🔹 CALCULATE SUBJECT POSITIONS
+  // ================================
+  const subjectGroups: any = {};
+
+  // Group by subject
+  for (const rc of reportCards) {
+    const subjectId = rc.subjectId;
+
+    if (!subjectGroups[subjectId]) {
+      subjectGroups[subjectId] = [];
+    }
+
+    subjectGroups[subjectId].push(rc);
+  }
+
+  // Map: studentId + subjectId → position
+  const subjectPositionMap: any = {};
+
+  Object.keys(subjectGroups).forEach((subjectId) => {
+    const sorted = subjectGroups[subjectId].sort(
+      (a: any, b: any) => b.totalScore - a.totalScore
+    );
+
+    sorted.forEach((rc: any, index: number) => {
+      const key = `${rc.studentId}_${subjectId}`;
+      subjectPositionMap[key] = index + 1;
+    });
+  });
+
+  // ================================
+  // 🔹 GROUP RESULTS BY STUDENT
+  // ================================
   const resultsMap: any = {};
 
   for (const rc of reportCards) {
@@ -533,12 +660,15 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
 
       resultsMap[rc.studentId] = {
         studentId: student?.id,
-        name: student?.firstName + " " + student?.lastName,
+        firstName: student?.firstName + " " + student?.lastName,
         subjects: [],
         total_score_sum: 0,
         subject_count: 0,
       };
     }
+
+    const key = `${rc.studentId}_${rc.subjectId}`;
+    const position = subjectPositionMap[key];
 
     resultsMap[rc.studentId].subjects.push({
       subject: rc.subject?.name,
@@ -546,23 +676,25 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
       examScore: rc.examScore,
       grand_total: rc.totalScore,
       grade: rc.grade,
+      position, // ✅ subject position added
     });
 
     resultsMap[rc.studentId].total_score_sum += rc.totalScore;
     resultsMap[rc.studentId].subject_count += 1;
   }
 
-  // 🔹 Convert to response format
+  // ================================
+  // 🔹 FINAL FORMAT
+  // ================================
   const finalData = Object.values(resultsMap).map((item: any) => ({
     studentId: item.studentId,
     firstName: item.firstName,
     subjects: item.subjects,
-    cumulative_average: Number((item.total_score_sum / item.subject_count).toFixed(2)),
+    cumulative_average: Number(
+      (item.total_score_sum / item.subject_count).toFixed(2)
+    ),
   }));
 
-  // ============================
-  // FINAL RESPONSE
-  // ============================
   res.status(200).json({
     status: "success",
     meta: {

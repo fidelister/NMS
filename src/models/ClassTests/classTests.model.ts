@@ -12,8 +12,8 @@ interface ClassTestAttributes {
   date: Date;
   test1?: number;
   test2?: number;
-  test3?: number;
-  test4?: number;
+  // test3?: number;
+  // test4?: number;
   totalMarks: number; // Always 40
   totalMarkObtained?: number; // test1 + test2 + test3 + test4
   sessionId?: number;
@@ -36,8 +36,8 @@ class ClassTest
   public date!: Date;
   public test1?: number;
   public test2?: number;
-  public test3?: number;
-  public test4?: number;
+  // public test3?: number;
+  // public test4?: number;
   public totalMarks!: number;
   public totalMarkObtained?: number;
 }
@@ -82,8 +82,8 @@ ClassTest.init(
     },
     test1: { type: DataTypes.FLOAT, defaultValue: 0 },
     test2: { type: DataTypes.FLOAT, defaultValue: 0 },
-    test3: { type: DataTypes.FLOAT, defaultValue: 0 },
-    test4: { type: DataTypes.FLOAT, defaultValue: 0 },
+    // test3: { type: DataTypes.FLOAT, defaultValue: 0 },
+    // test4: { type: DataTypes.FLOAT, defaultValue: 0 },
     totalMarks: {
       type: DataTypes.INTEGER,
       allowNull: false,

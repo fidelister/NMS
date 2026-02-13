@@ -374,8 +374,8 @@ export const getMyClassTests = asyncHandler(async (req: AuthRequest, res: Respon
     subjectEntry.tests.push({
       test1: test.test1,
       test2: test.test2,
-      test3: test.test3,
-      test4: test.test4,
+      // test3: test.test3,
+      // test4: test.test4,
       totalMarkObtained: test.totalMarkObtained,
       totalMarks: test.totalMarks,
       date: test.date,

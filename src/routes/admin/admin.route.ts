@@ -10,6 +10,8 @@ import { createSession, getAllSessions, getSessionDetails } from "../../controll
 import { createOrUpdatePsychomotor, getClassPsychomotor, getStudentPsychomotor } from "../../controllers/report_card/psychomotor_tests.controller";
 import { createTimetable, getClassTimetable, updateTimetable } from "../../controllers/timetable/timetable.controller";
 import { getAssignmentsBySession, getAttendanceBySession, getExamResultsBySession, getExamsBySession, getReportCardsBySession, getTestScoresBySession, getTimetableBySession } from "../../controllers/sessionRecords/sessionRecords.controller";
+import { getCompletedExams, getExamsWithPendingScores } from "../../controllers/exam/exam.controller";
+import { getTestsWithPendingScores } from "../../controllers/classTests/classTests.controller";
 
 const adminRoutes: Router = Router();
 
@@ -65,4 +67,11 @@ adminRoutes.get("/sessions/:sessionId/assignments", protect, adminOnly, getAssig
 adminRoutes.get("/sessions/:sessionId/class-tests", protect, adminOnly, getTestScoresBySession);
 adminRoutes.get("/sessions/:sessionId/report-cards", protect, adminOnly, getReportCardsBySession);
 adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetableBySession);
+adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetableBySession);
+adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetableBySession);
+adminRoutes.get("/exams/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getExamsWithPendingScores)
+adminRoutes.get("/exams/completed/:classId/:sessionId/:term", protect, adminOrTeacher, getCompletedExams)
+adminRoutes.get("/tests/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getTestsWithPendingScores)
+
 export default adminRoutes;
+    

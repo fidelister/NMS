@@ -3,7 +3,7 @@ import asyncHandler from "express-async-handler";
 import SuccessResponse, { getActiveSession } from "../../middlewares/helper";
 import Exam from "../../models/Exams/exam.model";
 import ExamResult from "../../models/Exams/examResults.model";
-import { Student, Subject } from "../../models/association.model";
+import { ClassModel, Student, Subject } from "../../models/association.model";
 import Session from "../../models/session/session.model";
 import { log } from "console";
 
@@ -205,3 +205,140 @@ export const updateExamResult = asyncHandler(async (req: Request, res: Response)
 
     new SuccessResponse("Exam result updated successfully", result).sendResponse(res);
 });
+
+export const getExamsWithPendingScores = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { classId, sessionId, term } = req.params;
+
+    // 1️⃣ Get all students in this class
+    const students = await Student.findAll({
+      where: { classId },
+      attributes: ["id"],
+    });
+
+    const totalStudents = students.length;
+
+    if (totalStudents === 0) {
+      res.status(404).json({ message: "No students found in this class" });
+      return;
+    }
+
+    // 2️⃣ Get all exams for this class/session/term
+    const exams = await Exam.findAll({
+      where: {
+        classId,
+        sessionId,
+        term,
+      },
+      include: [
+        {
+          model: Subject,
+          as: "subject",
+          attributes: ["id", "name"],
+        },
+        {
+          model: ClassModel,
+          as: "class",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+
+    const pendingExams: any[] = [];
+
+    // 3️⃣ Check each exam
+    for (const exam of exams) {
+      const resultsCount = await ExamResult.count({
+        where: {
+          examId: exam.id,
+          sessionId,
+          term,
+        },
+      });
+  const status = resultsCount === totalStudents ? "submitted" : "draft";
+
+      // 4️⃣ If not all students have results → still pending
+      if (resultsCount < totalStudents) {
+        pendingExams.push({
+          exam,
+          totalStudents,
+          resultsUploaded: resultsCount,
+          remaining: totalStudents - resultsCount,
+      exam_status: status, // ✅ added
+
+        });
+      }
+    }
+
+    new SuccessResponse(
+      "Exams with pending score uploads fetched",
+      pendingExams
+    ).sendResponse(res);
+  }
+);
+export const getCompletedExams = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { classId, sessionId, term } = req.params;
+
+    // 1️⃣ Get all students in this class
+    const students = await Student.findAll({
+      where: { classId },
+      attributes: ["id"],
+    });
+
+    const totalStudents = students.length;
+
+    if (totalStudents === 0) {
+      res.status(404).json({ message: "No students found in this class" });
+      return;
+    }
+
+    // 2️⃣ Get all exams for this class/session/term
+    const exams = await Exam.findAll({
+      where: {
+        classId,
+        sessionId,
+        term,
+      },
+      include: [
+        {
+          model: Subject,
+          as: "subject",
+          attributes: ["id", "name"],
+        },
+        {
+          model: ClassModel,
+          as: "class",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+
+    const completedExams: any[] = [];
+
+    // 3️⃣ Check each exam
+    for (const exam of exams) {
+      const resultsCount = await ExamResult.count({
+        where: {
+          examId: exam.id,
+          sessionId,
+          term,
+        },
+      });
+
+      // 4️⃣ If all students have results → completed
+      if (resultsCount === totalStudents) {
+        completedExams.push({
+          exam,
+          totalStudents,
+          resultsUploaded: resultsCount,
+        });
+      }
+    }
+
+    new SuccessResponse(
+      "Exams with fully uploaded scores fetched",
+      completedExams
+    ).sendResponse(res);
+  }
+);
