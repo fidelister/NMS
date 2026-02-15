@@ -575,6 +575,140 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
 //     data: finalData,
 //   });
 // });
+// export const getClassResults = asyncHandler(async (req: Request, res: Response) => {
+//   const { classId, term } = req.params;
+
+//   if (!term) {
+//     res.status(400).json({ message: "Term is required (term1, term2)" });
+//     return;
+//   }
+
+//   // 🔹 Get active session
+//   const activeSession = await Session.findOne({ where: { isActive: true } });
+//   if (!activeSession) {
+//     res.status(400).json({ message: "No active session found" });
+//     return;
+//   }
+
+//   // 🔹 Get the class
+//   const classRecord = await ClassModel.findByPk(classId);
+//   if (!classRecord) {
+//     res.status(404).json({ message: "Class not found" });
+//     return;
+//   }
+
+//   // 🔹 Get students in this class + session
+//   const students = await Student.findAll({
+//     where: { classId, sessionId: activeSession.id },
+//   });
+
+//   if (students.length === 0) {
+//     res.status(404).json({ message: "No students found in this class for this session" });
+//     return;
+//   }
+
+//   // 🔹 Fetch all report cards
+//   const reportCards = await ReportCard.findAll({
+//     where: {
+//       classId,
+//       term,
+//       sessionId: activeSession.id,
+//     },
+//     include: [
+//       { model: Subject, as: "subject", attributes: ["id", "name"] },
+//     ],
+//   });
+
+//   // ================================
+//   // 🔹 CALCULATE SUBJECT POSITIONS
+//   // ================================
+//   const subjectGroups: any = {};
+
+//   // Group by subject
+//   for (const rc of reportCards) {
+//     const subjectId = rc.subjectId;
+
+//     if (!subjectGroups[subjectId]) {
+//       subjectGroups[subjectId] = [];
+//     }
+
+//     subjectGroups[subjectId].push(rc);
+//   }
+
+//   // Map: studentId + subjectId → position
+//   const subjectPositionMap: any = {};
+
+//   Object.keys(subjectGroups).forEach((subjectId) => {
+//     const sorted = subjectGroups[subjectId].sort(
+//       (a: any, b: any) => b.totalScore - a.totalScore
+//     );
+
+//     sorted.forEach((rc: any, index: number) => {
+//       const key = `${rc.studentId}_${subjectId}`;
+//       subjectPositionMap[key] = index + 1;
+//     });
+//   });
+
+//   // ================================
+//   // 🔹 GROUP RESULTS BY STUDENT
+//   // ================================
+//   const resultsMap: any = {};
+
+//   for (const rc of reportCards) {
+//     if (!resultsMap[rc.studentId]) {
+//       const student = students.find((s) => s.id === rc.studentId);
+
+//       resultsMap[rc.studentId] = {
+//         studentId: student?.id,
+//         name: student?.firstName + " " + student?.lastName,
+//         nmsNumber: student?.nmsNumber,
+//         subjects: [],
+//         total_score_sum: 0,
+//         subject_count: 0,
+//       };
+//     }
+
+//     const key = `${rc.studentId}_${rc.subjectId}`;
+//     const position = subjectPositionMap[key];
+
+//     resultsMap[rc.studentId].subjects.push({
+//       subject: rc.subject?.name,
+//       testScore: rc.testScore,
+//       examScore: rc.examScore,
+//       grand_total: rc.totalScore,
+//       grade: rc.grade,
+//       position, // ✅ subject position added
+//     });
+
+//     resultsMap[rc.studentId].total_score_sum += rc.totalScore;
+//     resultsMap[rc.studentId].subject_count += 1;
+//   }
+
+//   // ================================
+//   // 🔹 FINAL FORMAT
+//   // ================================
+//   const finalData = Object.values(resultsMap).map((item: any) => ({
+//     studentId: item.studentId,
+//     name: item.name,
+//     nmsNumber: item.nmsNumber,
+//     subjects: item.subjects,
+//     cumulative_average: Number(
+//       (item.total_score_sum / item.subject_count).toFixed(2)
+//     ),
+//   }));
+
+//   res.status(200).json({
+//     status: "success",
+//     meta: {
+//       class: classRecord.name,
+//       session: activeSession.name,
+//       term,
+//       student_count: finalData.length,
+//     },
+//     data: finalData,
+//   });
+// });
+
 export const getClassResults = asyncHandler(async (req: Request, res: Response) => {
   const { classId, term } = req.params;
 
@@ -603,7 +737,9 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
   });
 
   if (students.length === 0) {
-    res.status(404).json({ message: "No students found in this class for this session" });
+    res.status(404).json({
+      message: "No students found in this class for this session",
+    });
     return;
   }
 
@@ -619,27 +755,37 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
     ],
   });
 
-  // ================================
-  // 🔹 CALCULATE SUBJECT POSITIONS
-  // ================================
-  const subjectGroups: any = {};
-
-  // Group by subject
-  for (const rc of reportCards) {
-    const subjectId = rc.subjectId;
-
-    if (!subjectGroups[subjectId]) {
-      subjectGroups[subjectId] = [];
-    }
-
-    subjectGroups[subjectId].push(rc);
+  if (reportCards.length === 0) {
+    res.status(404).json({ message: "No results found for this term" });
+    return;
   }
 
-  // Map: studentId + subjectId → position
+  // ==================================================
+  // 🔥 CALCULATE SUBJECT POSITIONS (CORRECT VERSION)
+  // ==================================================
+  const subjectGroups: any = {};
+
+  // Ensure ONE record per student per subject
+  for (const rc of reportCards) {
+    const subjectId = rc.subjectId;
+    const key = `${rc.studentId}_${subjectId}`;
+
+    if (!subjectGroups[subjectId]) {
+      subjectGroups[subjectId] = {};
+    }
+
+    // overwrite duplicates safely (keeps latest)
+    subjectGroups[subjectId][key] = rc;
+  }
+
+  // Map for storing calculated positions
   const subjectPositionMap: any = {};
 
   Object.keys(subjectGroups).forEach((subjectId) => {
-    const sorted = subjectGroups[subjectId].sort(
+    const subjectResults = Object.values(subjectGroups[subjectId]);
+
+    // Sort students by totalScore DESC
+    const sorted = subjectResults.sort(
       (a: any, b: any) => b.totalScore - a.totalScore
     );
 
@@ -649,49 +795,52 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
     });
   });
 
-  // ================================
+  // ==================================================
   // 🔹 GROUP RESULTS BY STUDENT
-  // ================================
+  // ==================================================
   const resultsMap: any = {};
 
   for (const rc of reportCards) {
-    if (!resultsMap[rc.studentId]) {
-      const student = students.find((s) => s.id === rc.studentId);
+    const student = students.find((s) => s.id === rc.studentId);
+    if (!student) continue;
 
+    if (!resultsMap[rc.studentId]) {
       resultsMap[rc.studentId] = {
-        studentId: student?.id,
-        name: student?.firstName + " " + student?.lastName,
-        nmsNumber: student?.nmsNumber,
-        subjects: [],
+        studentId: student.id,
+        name: `${student.firstName} ${student.lastName}`,
+        nmsNumber: student.nmsNumber,
+        subjects: {},
         total_score_sum: 0,
         subject_count: 0,
       };
     }
 
-    const key = `${rc.studentId}_${rc.subjectId}`;
-    const position = subjectPositionMap[key];
+    const subjectKey = `${rc.studentId}_${rc.subjectId}`;
 
-    resultsMap[rc.studentId].subjects.push({
-      subject: rc.subject?.name,
-      testScore: rc.testScore,
-      examScore: rc.examScore,
-      grand_total: rc.totalScore,
-      grade: rc.grade,
-      position, // ✅ subject position added
-    });
+    // Avoid duplicate subject entries
+    if (!resultsMap[rc.studentId].subjects[rc.subjectId]) {
+      resultsMap[rc.studentId].subjects[rc.subjectId] = {
+        subject: rc.subject?.name,
+        testScore: rc.testScore,
+        examScore: rc.examScore,
+        grand_total: rc.totalScore,
+        grade: rc.grade,
+        position: subjectPositionMap[subjectKey],
+      };
 
-    resultsMap[rc.studentId].total_score_sum += rc.totalScore;
-    resultsMap[rc.studentId].subject_count += 1;
+      resultsMap[rc.studentId].total_score_sum += rc.totalScore;
+      resultsMap[rc.studentId].subject_count += 1;
+    }
   }
 
-  // ================================
-  // 🔹 FINAL FORMAT
-  // ================================
+  // ==================================================
+  // 🔹 FINAL RESPONSE FORMAT
+  // ==================================================
   const finalData = Object.values(resultsMap).map((item: any) => ({
     studentId: item.studentId,
     name: item.name,
     nmsNumber: item.nmsNumber,
-    subjects: item.subjects,
+    subjects: Object.values(item.subjects),
     cumulative_average: Number(
       (item.total_score_sum / item.subject_count).toFixed(2)
     ),
@@ -708,5 +857,4 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
     data: finalData,
   });
 });
-
 
