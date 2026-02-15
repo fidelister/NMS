@@ -47,7 +47,7 @@ adminRoutes.post("/generate", protect, adminOrTeacher, generateReportCards);
 adminRoutes.post("/regenerate", protect, adminOrTeacher, regenerateReportCards);
 adminRoutes.get("/class-report/:classId", protect, adminOrTeacher, getClassReportCards);
 adminRoutes.get("/student-report/:studentId", protect, adminOrTeacher, getStudentReportCard);
-adminRoutes.get("/class-results", protect, adminOrTeacher, getClassResults);
+adminRoutes.get("/class-results/:classId/:term", protect, adminOrTeacher, getClassResults);
 //psychomotor details
 adminRoutes.post("/psychomotor", protect, adminOrTeacher, createOrUpdatePsychomotor);
 adminRoutes.get("/psychomotor/:studentId", protect, adminOrTeacher, getStudentPsychomotor);

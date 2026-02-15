@@ -576,7 +576,7 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
 //   });
 // });
 export const getClassResults = asyncHandler(async (req: Request, res: Response) => {
-  const { classId, term } = req.body;
+  const { classId, term } = req.params;
 
   if (!term) {
     res.status(400).json({ message: "Term is required (term1, term2)" });
