@@ -660,7 +660,8 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
 
       resultsMap[rc.studentId] = {
         studentId: student?.id,
-        firstName: student?.firstName + " " + student?.lastName,
+        name: student?.firstName + " " + student?.lastName,
+        nmsNumber: student?.nmsNumber,
         subjects: [],
         total_score_sum: 0,
         subject_count: 0,
@@ -688,7 +689,8 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
   // ================================
   const finalData = Object.values(resultsMap).map((item: any) => ({
     studentId: item.studentId,
-    firstName: item.firstName,
+    name: item.name,
+    nmsNumber: item.nmsNumber,
     subjects: item.subjects,
     cumulative_average: Number(
       (item.total_score_sum / item.subject_count).toFixed(2)

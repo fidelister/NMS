@@ -72,22 +72,12 @@ export const deleteClass = asyncHandler(async (req: AuthRequest, res: Response):
 
 export const updateClass = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const updates = req.body;
-
-    if (!Array.isArray(updates)) {
-      res.status(400).json({ message: "Body must be an array" });
-      return;
-    }
-
-    const results = [];
-
-    for (const item of updates) {
-      const { id, name, teacherId } = item;
-
+    const {id,name,teacherId} = req.body;
       const classData = await ClassModel.findByPk(id);
 
       if (!classData) {
-        continue; // skip if not found
+        res.status(404).json({ message: "Class not found." });
+        return;
       }
 
       // update name
@@ -101,17 +91,17 @@ export const updateClass = asyncHandler(
           (classData.teacherId as number | null) = null;
         } else {
           const teacherExists = await Teacher.findByPk(teacherId);
-          if (!teacherExists) continue;
+          if (!teacherExists) {
+            res.status(404).json({ message: "Teacher not found." });
+            return;
+          }
 
           classData.teacherId = teacherId;
         }
       }
 
       await classData.save();
-      results.push(classData);
-    }
-
-    new SuccessResponse("Classes updated successfully", results).sendResponse(res);
+    new SuccessResponse("Class updated successfully", classData).sendResponse(res);
   }
 );
 
