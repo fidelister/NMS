@@ -8,7 +8,7 @@ import { getStudentAttendance } from "../../controllers/attendance/attendance.co
 import { generateReportCards, getClassReportCards, getClassResults, getStudentReportCard, regenerateReportCards } from "../../controllers/report_card/report_card.controller";
 import { createSession, getAllSessions, getSessionDetails } from "../../controllers/session/session.controller";
 import { createOrUpdatePsychomotor, getClassPsychomotor, getStudentPsychomotor } from "../../controllers/report_card/psychomotor_tests.controller";
-import { createTimetable, getClassTimetable, updateTimetable } from "../../controllers/timetable/timetable.controller";
+import { createTimetable, deleteTimetable, getClassTimetable, updateTimetable } from "../../controllers/timetable/timetable.controller";
 import { getAssignmentsBySession, getAttendanceBySession, getExamResultsBySession, getExamsBySession, getReportCardsBySession, getTestScoresBySession, getTimetableBySession } from "../../controllers/sessionRecords/sessionRecords.controller";
 import { getCompletedExams, getExamsWithPendingScores } from "../../controllers/exam/exam.controller";
 import { getTestsWithPendingScores } from "../../controllers/classTests/classTests.controller";
@@ -55,7 +55,9 @@ adminRoutes.get("/class-psychomotor/:classId", protect, adminOrTeacher, getClass
 //timetable
 adminRoutes.post("/timetable", protect, adminOnly, createTimetable)
 adminRoutes.get("/timetable/:classId/:term", protect, adminOnly, getClassTimetable)
-adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)    
+adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)   
+adminRoutes.delete("/timetable/:id", protect, adminOnly, deleteTimetable)
+
 
 adminRoutes.put("/classes", protect, adminOrTeacher, updateClass);
 adminRoutes.put("/subjects", protect, adminOrTeacher, updateSubject);

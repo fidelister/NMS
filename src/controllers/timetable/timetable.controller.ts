@@ -289,4 +289,38 @@ export const getStudentTimetable =asyncHandler(async (req: AuthRequest, res: Res
   }
 );
 
+export const deleteTimetable = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+
+    // 🔹 Check active session
+    const activeSession = await Session.findOne({ where: { isActive: true } });
+    if (!activeSession) {
+      res.status(400).json({ message: "No active session" });
+      return;
+    }
+
+    // 🔹 Check timetable exists (and belongs to active session)
+    const timetable = await Timetable.findOne({
+      where: {
+        id,
+        sessionId: activeSession.id,
+      },
+    });
+
+    if (!timetable) {
+      res.status(404).json({
+        message: "Timetable not found for this session",
+      });
+      return;
+    }
+
+    // 🔹 Delete timetable
+    await timetable.destroy();
+
+    new SuccessResponse("Timetable deleted successfully", "").sendResponse(res);
+  }
+);
+
+
 
