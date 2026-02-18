@@ -10,6 +10,8 @@ import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
 import { ClassModel, Student, Subject, Teacher } from '../../../models/association.model';
 import Session from '../../../models/session/session.model';
+import { Op, Sequelize } from 'sequelize';
+import Attendance from '../../../models/attendance/attendance.model';
 
 export const registerAdmin = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { name, email, password } = req.body;
@@ -86,7 +88,7 @@ export const changeAdminPassword = asyncHandler(async (req: AuthRequest, res: Re
   console.log(newPassword);
   const hashed = await bcrypt.hash(newPassword, 10);
   admin.password = hashed;
-  await admin.save(); 
+  await admin.save();
 
   new SuccessResponse('Password changed successfully.', {}).sendResponse(res);
 });
@@ -151,7 +153,7 @@ export const assignStudentToClass = asyncHandler(async (req: Request, res: Respo
   }
 
   // 🔍 Find the class
-const classInstance = await ClassModel.findOne({ where: { id: classId, sessionId: activeSession.id } });
+  const classInstance = await ClassModel.findOne({ where: { id: classId, sessionId: activeSession.id } });
   if (!classInstance) {
     res.status(404).json({ message: "Class not found in the active session." });
     return;
@@ -245,7 +247,7 @@ export const getAllClasses = asyncHandler(async (req: Request, res: Response): P
       {
         model: Student,
         as: 'students',
-        attributes: ['id', 'firstName', 'lastName','gender', 'email', 'dateOfAdmission', 'nmsNumber'],
+        attributes: ['id', 'firstName', 'lastName', 'gender', 'email', 'dateOfAdmission', 'nmsNumber'],
       }
     ]
   });
@@ -417,7 +419,7 @@ export const getTeacherSubjects = asyncHandler(async (req: Request, res: Respons
   });
 
   if (!teacher) {
-   res.status(404).json({ message: "Teacher not found" });
+    res.status(404).json({ message: "Teacher not found" });
     return;
   }
 
@@ -452,3 +454,167 @@ export const activeSession = asyncHandler(
     });
   }
 );
+// export const getSchoolDashboardStats = asyncHandler(
+//   async (req: Request, res: Response): Promise<void> => {
+//     // ===============================
+//     // 1️⃣ TOTAL STUDENTS
+//     // ===============================
+//     const totalStudents = await Student.count();
+
+//     // ===============================
+//     // 2️⃣ TOTAL TEACHERS
+//     // ===============================
+//     const totalTeachers = await Teacher.count();
+
+//     // ===============================
+//     // 3️⃣ NEWLY ADMITTED STUDENTS (Last 7 Days)
+//     // ===============================
+//     const sevenDaysAgo = new Date();
+//     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+//     const newlyAdmittedStudents = await Student.findAll({
+//       where: {
+//         createdAt: {
+//           [Op.gte]: sevenDaysAgo,
+//         },
+//       },
+//       attributes: ["id", "firstName", "lastName", "classId", "createdAt"],
+//       include: [
+//         {
+//           model: ClassModel,
+//           as: "class",
+//           attributes: ["name"],
+//         },
+//       ],
+//       order: [["createdAt", "DESC"]],
+//     });
+
+//     // ===============================
+//     // 4️⃣ ATTENDANCE TODAY
+//     // ===============================
+//     const today = new Date().toISOString().split("T")[0];
+
+//     const todayAttendance = await Attendance.findAll({
+//       where: {
+//         date: today,
+//       },
+//     });
+
+//     const totalMarkedToday = todayAttendance.length;
+
+//     const presentCount = todayAttendance.filter(
+//       (a) => a.status === "present"
+//     ).length;
+
+//     const absentCount = todayAttendance.filter(
+//       (a) => a.status === "absent"
+//     ).length;
+
+//     const presentPercentage =
+//       totalMarkedToday === 0
+//         ? 0
+//         : Number(((presentCount / totalMarkedToday) * 100).toFixed(2));
+
+//     const absentPercentage =
+//       totalMarkedToday === 0
+//         ? 0
+//         : Number(((absentCount / totalMarkedToday) * 100).toFixed(2));
+
+//     // ===============================
+//     // 5️⃣ NUMBER OF STUDENTS PER CLASS
+//     // ===============================
+//     const studentsPerClass = await Student.findAll({
+//       attributes: [
+//         "classId",
+//         [Sequelize.fn("COUNT", Sequelize.col("id")), "studentCount"],
+//       ],
+//       group: ["classId"],
+//       include: [
+//         {
+//           model: ClassModel,
+//           as: "class",
+//           attributes: ["name"],
+//         },
+//       ],
+//     });
+
+//     const classDistribution = studentsPerClass.map((item: any) => ({
+//       classId: item.classId,
+//       className: item.class?.name,
+//       studentCount: Number(item.get("studentCount")),
+//     }));
+
+//     // ===============================
+//     // FINAL RESPONSE
+//     // ===============================
+//     res.status(200).json({
+//       status: "success",
+//       data: {
+//         totals: {
+//           students: totalStudents,
+//           teachers: totalTeachers,
+//         },
+//         attendanceToday: {
+//           presentPercentage,
+//           absentPercentage,
+//           presentCount,
+//           absentCount,
+//         },
+//         newlyAdmittedStudents,
+//         studentsPerClass: classDistribution,
+//       },
+//     });
+//   }
+// );
+
+export const getSchoolDashboardStats = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const totalStudents = await Student.count();
+  const totalTeachers = await Teacher.count();
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const newlyAdmittedStudents = await Student.findAll({
+    where: { createdAt: { [Op.gte]: sevenDaysAgo } },
+    attributes: ["id", "firstName", "lastName", "classId", "createdAt"],
+    include: [{ model: ClassModel, as: "class", attributes: ["name"] }],
+    order: [["createdAt", "DESC"]],
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const todayAttendance = await Attendance.findAll({ where: { date: today } });
+  const totalMarkedToday = todayAttendance.length;
+  const presentCount = todayAttendance.filter((a) => a.status === "present").length;
+  const absentCount = todayAttendance.filter((a) => a.status === "absent").length;
+  const lateCount = todayAttendance.filter((a) => a.status === "late").length;
+
+  const presentPercentage = totalMarkedToday === 0 ? 0 : Number(((presentCount / totalMarkedToday) * 100).toFixed(2));
+  const absentPercentage = totalMarkedToday === 0 ? 0 : Number(((absentCount / totalMarkedToday) * 100).toFixed(2));
+  const latePercentage = totalMarkedToday === 0 ? 0 : Number(((lateCount / totalMarkedToday) * 100).toFixed(2));
+
+  // Robust fallback: fetch classes and count students per class separately
+  const classes = await ClassModel.findAll({ attributes: ["id", "name"] });
+
+  const classDistribution = await Promise.all(
+    classes.map(async (cls: any) => {
+      const studentCount = await Student.count({ where: { classId: cls.id } });
+      return {
+        classId: cls.id,
+        className: cls.name,
+        studentCount: Number(studentCount) || 0,
+      };
+    })
+  );
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      totals: { students: totalStudents, teachers: totalTeachers },
+      attendanceToday: { presentPercentage, absentPercentage, latePercentage, presentCount, absentCount, lateCount },
+      newlyAdmittedStudents,
+      studentsPerClass: classDistribution,
+    },
+  });
+});
+

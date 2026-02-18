@@ -1,6 +1,6 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
-import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
+import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getSchoolDashboardStats, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
 import { createClass, deleteClass, updateClass } from "../../controllers/class/class.controller";
 import { createSubject, updateSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
@@ -74,6 +74,6 @@ adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetab
 adminRoutes.get("/exams/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getExamsWithPendingScores)
 adminRoutes.get("/exams/completed/:classId/:sessionId/:term", protect, adminOrTeacher, getCompletedExams)
 adminRoutes.get("/tests/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getTestsWithPendingScores)
-
+adminRoutes.get("/dashboard-stats", protect, adminOnly, getSchoolDashboardStats);
 export default adminRoutes;
     
