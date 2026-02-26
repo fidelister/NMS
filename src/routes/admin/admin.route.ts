@@ -1,7 +1,7 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
-import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getSchoolDashboardStats, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin } from "../../controllers/auth/admin/admin.controller";
-import { createClass, deleteClass, updateClass } from "../../controllers/class/class.controller";
+import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getSchoolDashboardStats, getSessionTerms, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin, switchActiveTerm } from "../../controllers/auth/admin/admin.controller";
+import { changeStudentClass, createClass, deleteClass, updateClass } from "../../controllers/class/class.controller";
 import { createSubject, updateSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
@@ -75,5 +75,10 @@ adminRoutes.get("/exams/pending/:classId/:sessionId/:term", protect, adminOrTeac
 adminRoutes.get("/exams/completed/:classId/:sessionId/:term", protect, adminOrTeacher, getCompletedExams)
 adminRoutes.get("/tests/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getTestsWithPendingScores)
 adminRoutes.get("/dashboard-stats", protect, adminOnly, getSchoolDashboardStats);
+
+
+adminRoutes.patch("/switch/:termId", protect, adminOnly, switchActiveTerm)
+adminRoutes.patch("/promote", protect, adminOnly, changeStudentClass)
+adminRoutes.get("/termInSession", protect, adminOnly, getSessionTerms)
 export default adminRoutes;
     

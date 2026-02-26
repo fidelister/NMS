@@ -8,7 +8,7 @@ import { BadRequestsException } from '../../../exceptions/bad-request-exceptions
 import { ERRORCODES } from '../../../exceptions/root';
 import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
-import { ClassModel, Student, Subject, Teacher } from '../../../models/association.model';
+import { ClassModel, Student, Subject, Teacher, Term } from '../../../models/association.model';
 import Session from '../../../models/session/session.model';
 import { Op, Sequelize } from 'sequelize';
 import Attendance from '../../../models/attendance/attendance.model';
@@ -618,3 +618,103 @@ export const getSchoolDashboardStats = asyncHandler(async (req: Request, res: Re
   });
 });
 
+export const switchActiveTerm = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { termId } = req.params;
+    // 1️⃣ Get active session
+    const session = await Session.findOne({
+      where: { isActive: true }
+    });
+    if (!session) {
+      res.status(400).json({
+        message: "No active session found"
+      });
+      return;
+    }
+    // 2️⃣ Find term inside active session
+    const term =
+      await Term.findOne({
+
+        where: {
+          id: termId,
+          sessionId: session.id
+        }
+
+      });
+
+
+    if (!term) {
+
+      res.status(404).json({
+        message: "Term not found in active session"
+      });
+
+      return;
+    }
+
+
+    // 3️⃣ Deactivate all terms in session
+    await Term.update(
+      { isActive: false },
+      {
+        where: {
+          sessionId: session.id
+        }
+      }
+    );
+
+
+    // 4️⃣ Activate selected term
+
+    term.isActive = true;
+
+    await term.save();
+
+
+    new SuccessResponse(
+      "Active term switched successfully",
+      {
+        activeSession: session.id,
+        activeTerm: term
+      }
+    ).sendResponse(res);
+
+  });
+export const getSessionTerms =
+  asyncHandler(async (req: Request, res: Response) => {
+
+    const session =
+      await Session.findOne({
+        where: { isActive: true }
+      });
+
+    if (!session) {
+
+      res.status(400).json({
+        message: "No active session"
+      });
+
+      return;
+    }
+
+
+    const terms =
+      await Term.findAll({
+
+        where: {
+          sessionId: session.id
+        },
+
+        order: [
+          ["id", "ASC"]
+        ]
+
+      });
+
+
+    new SuccessResponse(
+      "Session terms retrieved",
+      terms
+    ).sendResponse(res);
+
+  });

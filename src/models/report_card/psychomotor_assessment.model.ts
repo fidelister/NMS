@@ -1,13 +1,13 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../../database";
-import { Student, ClassModel } from "../association.model";
+import { Student, ClassModel, Term } from "../association.model";
 import Session from "../session/session.model";
 
 class PsychomotorAssessment extends Model {
     public id!: number;
     public studentId!: number;
     public classId!: number;
-    public term!: string;
+    public termId!: number;
     public sessionId!: number;
     public skills!: any;
     public behaviours!: any;
@@ -38,10 +38,12 @@ PsychomotorAssessment.init(
             references: { model: "sessions", key: "id" },
             onDelete: "CASCADE",
         },
-        term: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
+        termId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      references: { model: "Terms", key: "id" },
+      onDelete: "CASCADE",
+    },
         skills: {
             type: DataTypes.TEXT,
             allowNull: false,
@@ -77,5 +79,6 @@ PsychomotorAssessment.init(
 PsychomotorAssessment.belongsTo(Student, { foreignKey: "studentId", as: "student" });
 PsychomotorAssessment.belongsTo(ClassModel, { foreignKey: "classId", as: "class", onDelete: "CASCADE" });
 PsychomotorAssessment.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
+PsychomotorAssessment.belongsTo(Term, { foreignKey: "termId", as: "term" });
 
 export default PsychomotorAssessment;

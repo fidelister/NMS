@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
-import { ClassModel, Student, Subject, Teacher } from "../association.model";
+import { ClassModel, Student, Subject, Teacher, Term } from "../association.model";
 import Session from "../session/session.model";
 
 interface ClassTestAttributes {
@@ -8,7 +8,7 @@ interface ClassTestAttributes {
   studentId: number;
   subjectId: number;
   classId: number;
-  term: string; // Term 1, Term 2, Term 3
+  termId: number; // Term 1, Term 2, Term 3
   date: Date;
   test1?: number;
   test2?: number;
@@ -30,7 +30,7 @@ class ClassTest
   public studentId!: number;
   public subjectId!: number;
   public classId!: number;
-  public term!: string;
+  public termId!: number;
   public sessionId!: number;
 
   public date!: Date;
@@ -72,9 +72,11 @@ ClassTest.init(
       references: { model: "sessions", key: "id" },
       onDelete: "CASCADE",
     },
-    term: {
-      type: DataTypes.ENUM("term1", "term2", "term3"),
+    termId: {
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      references: { model: "Terms", key: "id" },
+      onDelete: "CASCADE",
     },
     date: {
       type: DataTypes.DATEONLY,
@@ -111,4 +113,6 @@ ClassTest.belongsTo(ClassModel, {
 
 ClassTest.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 Session.hasMany(ClassTest, { foreignKey: "sessionId", as: "class_tests" });
+ClassTest.belongsTo(Term, { foreignKey: "termId", as: "term" });
+Term.hasMany(ClassTest, { foreignKey: "termId", as: "class_tests" });
 export default ClassTest;

@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import { ClassModel, Student, Subject, Teacher } from '../../models/association.model';
+import { ClassModel, Student, Subject, Teacher, Term } from '../../models/association.model';
 import { BadRequestsException } from '../../exceptions/bad-request-exceptions';
 import SuccessResponse from '../../middlewares/helper';
 import { ERRORCODES } from '../../exceptions/root';
@@ -11,14 +11,30 @@ import Exam from '../../models/Exams/exam.model';
 export const createSession = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { name } = req.body;
     await Session.update({ isActive: false }, { where: {} });
-
     //  Create new active session
-    const s = await Session.create({
+    const session = await Session.create({
         name,
         isActive: true
     });
-    new SuccessResponse('New active session created', {
-        session: s,
+    await Term.bulkCreate([
+    {
+      name: "term1",
+      sessionId: session.id,
+      isActive: true 
+    },
+    {
+      name: "term2",
+      sessionId: session.id,
+      isActive: false
+    },
+    {
+      name: "term3",
+      sessionId: session.id,
+      isActive: false
+    }
+  ]);
+    new SuccessResponse('New active session created with terms', {
+        session: session,
     }).sendResponse(res);
 });
 export const getAllSessions = asyncHandler(async (req: Request, res: Response) => {

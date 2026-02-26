@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
 import Exam from "./exam.model";
-import { Student, Subject } from "../association.model";
+import { Student, Subject, Term } from "../association.model";
 import Session from "../session/session.model";
 
 interface ExamResultAttributes {
@@ -10,12 +10,12 @@ interface ExamResultAttributes {
   studentId: number;
   subjectId: number;
   sessionId: number;
-  term: "term1" | "term2" | "term3";
+  termId: number;
   marksObtained: number;
 }
 
 interface ExamResultCreationAttributes
-  extends Optional<ExamResultAttributes, "id"> {}
+  extends Optional<ExamResultAttributes, "id"> { }
 
 class ExamResult
   extends Model<ExamResultAttributes, ExamResultCreationAttributes>
@@ -25,7 +25,7 @@ class ExamResult
   public studentId!: number;
   public subjectId!: number;
   public sessionId!: number;
-  public term!: "term1" | "term2" | "term3";
+  public termId!: number;
   public marksObtained!: number;
 }
 
@@ -62,9 +62,11 @@ ExamResult.init(
       onDelete: "CASCADE",
     },
 
-    term: {
-      type: DataTypes.ENUM("term1", "term2", "term3"),
+    termId: {
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      references: { model: "Terms", key: "id" },
+      onDelete: "CASCADE",
     },
 
     marksObtained: {
@@ -87,5 +89,7 @@ ExamResult.belongsTo(Student, { foreignKey: "studentId", as: "student" });
 ExamResult.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 
 Session.hasMany(ExamResult, { foreignKey: "sessionId", as: "exam_results" });
+ExamResult.belongsTo(Term, { foreignKey: "termId", as: "term" });
+Term.hasMany(ExamResult, { foreignKey: "termId", as: "exam_results" });
 export default ExamResult;
 

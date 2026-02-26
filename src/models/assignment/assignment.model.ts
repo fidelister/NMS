@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
 import Session from "../session/session.model";
-import { ClassModel, Subject, Teacher } from "../association.model";
+import { ClassModel, Subject, Teacher, Term } from "../association.model";
 
 interface AssignmentAttributes {
   id: number;
@@ -9,6 +9,7 @@ interface AssignmentAttributes {
   description: string;
   submissionDate: Date;
   classId: number;
+  termId: number;
   subjectId: number;
   teacherId: number;
   sessionId: number;
@@ -27,6 +28,7 @@ class Assignment
   public classId!: number;
   public subjectId!: number;
   public teacherId!: number;
+  public termId!: number;
   public sessionId!: number;
 }
 
@@ -63,7 +65,12 @@ Assignment.init(
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
     },
-
+  termId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      references: { model: "Terms", key: "id" },
+      onDelete: "CASCADE",
+    },
     teacherId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
@@ -86,5 +93,7 @@ Assignment.belongsTo(ClassModel, { foreignKey: "classId", as: "class" });
 Assignment.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" });
 Assignment.belongsTo(Teacher, { foreignKey: "teacherId", as: "teacher" });
 Assignment.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
-
+Assignment.belongsTo(Term, { foreignKey: "termId", as: "term" });
+Term.hasMany(Assignment, { foreignKey: "termId", as: "assignments" });
+Session.hasMany(Assignment, { foreignKey: "sessionId", as: "assignments" });
 export default Assignment;

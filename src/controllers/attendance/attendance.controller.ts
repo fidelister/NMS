@@ -3,7 +3,7 @@ import asyncHandler from 'express-async-handler';
 import { Request, Response } from 'express';
 import { ClassModel, Student } from '../../models/association.model';
 import Attendance from '../../models/attendance/attendance.model';
-import SuccessResponse, { getActiveSession } from '../../middlewares/helper';
+import SuccessResponse, { getActiveAcademicPeriod, getActiveSession } from '../../middlewares/helper';
 import { AuthRequest } from '../../middlewares/authMiddleware';
 
 // ✅ Record Attendance (teacher only)
@@ -14,7 +14,11 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
     res.status(400).json({ message: 'Please send all fields' });
     return;
   }
-
+ const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
   const user = req.user; // contains id + role from token
 
   const classInstance = await ClassModel.findByPk(classId);
@@ -44,7 +48,6 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
   //   return;
   // }
 
-  const activeSession = await getActiveSession();
 
   const attendance = await Attendance.create({
     studentId,
@@ -53,7 +56,8 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
     date,
     week,
     status,
-    sessionId: activeSession?.id
+    sessionId: session.id,
+    termId: term.id
   });
 
   new SuccessResponse("Attendance recorded successfully", { attendance }).sendResponse(res);
@@ -63,8 +67,13 @@ export const recordAttendance = asyncHandler(async (req: AuthRequest, res: Respo
 // ✅ Get class attendance summary
 export const getClassAttendance = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { classId } = req.params;
+   const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
   const records = await Attendance.findAll({
-    where: { classId },
+    where: { classId, sessionId: session.id, termId: term.id },
     include: [{ association: "student", attributes: ["id", "firstName","lastName", "email"] }],
     order: [["date", "DESC"]],
   });
@@ -75,9 +84,13 @@ export const getClassAttendance = asyncHandler(async (req: Request, res: Respons
 // ✅ Get student attendance record 
 export const getStudentAttendance = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { studentId } = req.params;
-
+ const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
   const records = await Attendance.findAll({
-    where: { studentId },
+    where: { studentId, sessionId: session.id, termId: term.id },
     include: [{ association: "class", attributes: ["id", "name"] }],
     order: [["date", "DESC"]],
   });
@@ -88,8 +101,12 @@ export const getStudentAttendance = asyncHandler(async (req: Request, res: Respo
 // ✅ Update attendance record
 export const updateAttendance = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { id, status } = req.body;
-
-  const record = await Attendance.findByPk(id);
+ const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
+  const record = await Attendance.findOne({ where: { id, sessionId: session.id, termId: term.id } });
   if (!record) {
     res.status(404).json({ message: 'Attendance record not found' });
     return;

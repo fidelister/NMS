@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
-import SuccessResponse, { getActiveSession } from "../../middlewares/helper";
+import SuccessResponse, { getActiveAcademicPeriod, getActiveSession } from "../../middlewares/helper";
 import { ClassModel, Student, Subject } from "../../models/association.model";
 import ClassTest from "../../models/ClassTests/classTests.model";
 import { AuthRequest } from "../../middlewares/authMiddleware";
@@ -76,104 +76,119 @@ import { AuthRequest } from "../../middlewares/authMiddleware";
 
 export const createClassTest = asyncHandler(
   async (req: AuthRequest, res: Response) => {
-    const { classId, subjectId, term, date, results } = req.body;
+
+    const { classId, subjectId, date, results } = req.body;
 
     const loggedTeacherId = req.user?.id;
     const loggedUserRole = req.user?.role;
 
     if (!Array.isArray(results) || results.length === 0) {
-      res.status(400).json({ message: "Results array is required" });
+      res.status(400).json({
+        message: "Results array is required"
+      });
       return;
     }
 
-    // ✅ Teacher permission check
+    // ✅ Active period
+    const { session, term } = await getActiveAcademicPeriod();
+
+    if (!session || !term) {
+      res.status(400).json({
+        message: "No active academic period"
+      });
+      return;
+    }
+
+    // ✅ Teacher permission
     if (loggedUserRole === "teacher") {
+
       const classRecord = await ClassModel.findOne({
-        where: { id: classId, teacherId: loggedTeacherId },
+        where: {
+          id: classId,
+          teacherId: loggedTeacherId
+        }
       });
 
       if (!classRecord) {
+
         res.status(403).json({
-          success: false,
-          message: "You are not assigned as the primary teacher for this class.",
+          message: "You are not assigned to this class"
         });
+
         return;
       }
-    }
-
-    const activeSession = await getActiveSession();
-    if (!activeSession) {
-      res.status(400).json({ message: "No active session found" });
-      return;
     }
 
     const createdRecords = [];
 
     for (const result of results) {
+
       const { studentId, test1, test2 } = result;
 
-      // ✅ Validate term
-      if (!["term1", "term2", "term3"].includes(term)) {
-        throw new Error(`Invalid term value: ${term}`);
-      }
+      // score validation
+      if (test1 !== undefined && (test1 < 0 || test1 > 10))
+        throw new Error("test1 must be 0-10");
 
-      // ✅ Validate score range
-      const scores = { test1, test2 };
-      for (const [key, value] of Object.entries(scores)) {
-        if (value !== undefined && (value < 0 || value > 10)) {
-          throw new Error(`${key} must be between 0 and 10`);
-        }
-      }
+      if (test2 !== undefined && (test2 < 0 || test2 > 10))
+        throw new Error("test2 must be 0-10");
 
-      // ✅ Check student exists
       const student = await Student.findByPk(studentId);
-      if (!student) {
-        throw new Error(`Student ${studentId} not found`);
-      }
 
-      // ✅ Prevent duplicate
+      if (!student)
+        throw new Error(`Student ${studentId} not found`);
+      // Ensure student is assigned to the provided classId
+      if (student.classId !== classId) {
+        return;
+      }
+      // duplicate check
       const existingTest = await ClassTest.findOne({
         where: {
           studentId,
           subjectId,
           classId,
-          term,
-          sessionId: activeSession.id,
-        },
+          sessionId: session.id,
+          termId: term.id
+        }
       });
 
       if (existingTest) {
+
         throw new Error(
-          `Test already exists for student ${studentId} (${term})`
+          `Test exists for student ${studentId}`
         );
+
       }
 
-      const totalMarks = 40;
       const totalMarkObtained =
         (test1 || 0) + (test2 || 0);
 
       const newRecord = await ClassTest.create({
+
         studentId,
         subjectId,
         classId,
-        term,
         date,
         test1,
         test2,
-        totalMarks,
+
+        totalMarks: 40,
         totalMarkObtained,
-        sessionId: activeSession.id,
+
+        sessionId: session.id,
+        termId: term.id
+
       });
 
       createdRecords.push(newRecord);
+
     }
 
     new SuccessResponse(
-      "Class test results uploaded successfully",
+      "Class tests uploaded",
       createdRecords
     ).sendResponse(res);
-  }
-);
+
+  });
 
 
 
@@ -181,9 +196,15 @@ export const createClassTest = asyncHandler(
 // ✅ Get All Class Tests for a Class
 export const getClassTestsByClass = asyncHandler(async (req: Request, res: Response) => {
   const { classId } = req.params;
+  const { session, term } = await getActiveAcademicPeriod();
+
+  if (!session || !term) {
+    res.status(400).json({ message: "No active academic period found" });
+    return;
+  }
 
   const tests = await ClassTest.findAll({
-    where: { classId },
+    where: { classId, sessionId: session.id, termId: term.id },
     include: [
       {
         association: "student",
@@ -202,9 +223,14 @@ export const getClassTestsByClass = asyncHandler(async (req: Request, res: Respo
 // ✅ Get All Class Tests for a Student
 export const getClassTestsByStudent = asyncHandler(async (req: Request, res: Response) => {
   const { studentId } = req.params;
+  const { session, term } = await getActiveAcademicPeriod();
 
+  if (!session || !term) {
+    res.status(400).json({ message: "No active academic period found" });
+    return;
+  }
   const tests = await ClassTest.findAll({
-    where: { studentId },
+    where: { studentId, sessionId: session.id, termId: term.id },
     include: ["subject", "class"],
   });
 
@@ -214,9 +240,16 @@ export const getClassTestsByStudent = asyncHandler(async (req: Request, res: Res
 // ✅ Update a Test Record
 export const updateClassTest = asyncHandler(async (req: Request, res: Response) => {
   const { testId } = req.params;
-  const { test1, test2  } = req.body;
+  const { test1, test2 } = req.body;
+  const { session, term } = await getActiveAcademicPeriod();
 
-  const record = await ClassTest.findByPk(testId);
+  if (!session || !term) {
+    res.status(400).json({ message: "No active academic period found" });
+    return;
+  }
+  const record = await ClassTest.findOne({
+    where: { id: testId, sessionId: session.id, termId: term.id },
+  });
   if (!record) {
     res.status(404).json({ message: "Class test record not found" });
     return;
@@ -235,8 +268,13 @@ export const updateClassTest = asyncHandler(async (req: Request, res: Response) 
 
 export const getTestsWithPendingScores = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { classId, sessionId, term } = req.params;
+    const { classId } = req.params;
+    const { session, term } = await getActiveAcademicPeriod();
 
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
     // 1️⃣ Get total students in the class
     const students = await Student.findAll({
       where: { classId },
@@ -254,8 +292,8 @@ export const getTestsWithPendingScores = asyncHandler(
     const pendingTests = await ClassTest.findAll({
       where: {
         classId,
-        sessionId,
-        term,
+        sessionId: session.id,
+        termId: term.id,
         totalMarkObtained: 0, // score not uploaded
       },
       include: [
@@ -289,11 +327,11 @@ export const getTestsWithPendingScores = asyncHandler(
       subjectMap[subjectId].studentsWithoutScores += 1;
     });
 
-const result = Object.values(subjectMap).map((item: any) => ({
-  ...item,
-  test_status:
-    item.studentsWithoutScores === 0 ? "submitted" : "draft",
-}));
+    const result = Object.values(subjectMap).map((item: any) => ({
+      ...item,
+      test_status:
+        item.studentsWithoutScores === 0 ? "submitted" : "draft",
+    }));
 
     new SuccessResponse(
       "Tests with pending score uploads fetched",

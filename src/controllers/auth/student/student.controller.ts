@@ -5,7 +5,7 @@ import Student from '../../../models/auth/student.model';
 import asyncHandler from 'express-async-handler';
 import { BadRequestsException } from '../../../exceptions/bad-request-exceptions';
 import { ERRORCODES } from '../../../exceptions/root';
-import SuccessResponse, { generateToken, getActiveSession } from '../../../middlewares/helper';
+import SuccessResponse, { generateToken, getActiveAcademicPeriod, getActiveSession } from '../../../middlewares/helper';
 import { NotFoundException } from '../../../exceptions/not-found-exeptions';
 import { AuthRequest } from '../../../middlewares/authMiddleware';
 import Session from '../../../models/session/session.model';
@@ -398,7 +398,7 @@ export const getMyClassTests = asyncHandler(async (req: AuthRequest, res: Respon
       totalMarkObtained: test.totalMarkObtained,
       totalMarks: test.totalMarks,
       date: test.date,
-      term: test.term,
+      termId: test.termId,
     });
   }
 
@@ -413,21 +413,20 @@ export const getMyClassTests = asyncHandler(async (req: AuthRequest, res: Respon
 });
 export const getMyExamResults = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const studentId = req.user.id; // ✅ logged-in student
-  const { term } = req.body;
 
   // ✅ Get active session
-  const activeSession = await Session.findOne({ where: { isActive: true } });
-  if (!activeSession) {
-    res.status(400).json({ message: "No active session found" });
-    return;
-  }
+   const { session, term } = await getActiveAcademicPeriod();
+       if (!session || !term) {
+         res.status(400).json({ message: "No active academic period found" });
+         return;
+       }
 
   // ✅ Fetch exam results
   const examResults = await ExamResult.findAll({
     where: {
       studentId,
-      sessionId: activeSession?.id,
-      ...(term ? { term } : {}),
+      sessionId: session?.id,
+      termId: term?.id,
     },
     include: [
       {
@@ -461,14 +460,14 @@ export const getMyExamResults = asyncHandler(async (req: AuthRequest, res: Respo
     subjectEntry.exams.push({
       marksObtained: result.marksObtained,
       totalMarks: 60,
-      term: result.term,
+      termId: result.termId,
     });
   }
 
   new SuccessResponse("Exam results fetched successfully", {
     session: {
-      id: activeSession?.id,
-      name: activeSession?.name,
+      id: session?.id,
+      name: session?.name,
     },
     totalSubjects: groupedResults.length,
     subjects: groupedResults,
@@ -477,7 +476,11 @@ export const getMyExamResults = asyncHandler(async (req: AuthRequest, res: Respo
 
 export const getStudentAssignments = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const studentId = req.user?.id;
-
+  const { session, term } = await getActiveAcademicPeriod();
+       if (!session || !term) {
+         res.status(400).json({ message: "No active academic period found" });
+         return;
+       }
   const student = await Student.findByPk(studentId);
   if (!student || !student.classId) {
     res.status(400).json({
@@ -486,21 +489,13 @@ export const getStudentAssignments = asyncHandler(async (req: AuthRequest, res: 
     return;
   }
 
-  const activeSession = await Session.findOne({
-    where: { isActive: true },
-  });
-
-  if (!activeSession) {
-    res.status(400).json({
-      message: "No active session",
-    });
-    return;
-  }
+ 
 
   const assignments = await Assignment.findAll({
     where: {
       classId: student.classId,
-      sessionId: activeSession.id,
+      sessionId: session.id,
+      termId: term.id
     },
     include: [
       {

@@ -1,5 +1,6 @@
 import jwt, { SignOptions, JwtPayload, Secret } from 'jsonwebtoken';
 import Session from '../models/session/session.model';
+import { Term } from '../models/association.model';
 
 class SuccessResponse {
   success: boolean;
@@ -37,6 +38,57 @@ export const getGrade = (score: number) => {
   return { grade: "F", remark: "Fail" };
 };
 
+
 export const getActiveSession = async () => {
-  return await Session.findOne({ where: { isActive: true } });
+
+  const session = await Session.findOne({
+    where: { isActive: true }
+  });
+
+  if (!session) {
+    throw new Error("No active session");
+  }
+
+  return session;
+};
+export const getActiveTerm = async (sessionId:number) => {
+
+  const term = await Term.findOne({
+    where: {
+      sessionId,
+      isActive:true
+    }
+  });
+
+  if (!term) {
+    throw new Error("No active term");
+  }
+
+  return term;
+};
+export const getActiveAcademicPeriod = async () => {
+
+  const session = await Session.findOne({
+    where:{isActive:true}
+  });
+
+  if(!session){
+    throw new Error("No active session");
+  }
+
+  const term = await Term.findOne({
+    where:{
+      sessionId:session.id,
+      isActive:true
+    }
+  });
+
+  if(!term){
+    throw new Error("No active term");
+  }
+
+  return {
+    session,
+    term
+  };
 };

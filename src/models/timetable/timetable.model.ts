@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
-import { ClassModel, Subject, Teacher } from "../association.model";
+import { ClassModel, Subject, Teacher, Term } from "../association.model";
 import Session from "../session/session.model";
 
 interface TimetableAttributes {
@@ -9,7 +9,7 @@ interface TimetableAttributes {
   subjectId: number;
   teacherId: number;
   sessionId: number;
-  term: "term1" | "term2" | "term3";
+  termId: number;
   day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday";
   period: number; // 1 – 7
   startTime: string; // "08:00"
@@ -27,7 +27,7 @@ class Timetable
   public subjectId!: number;
   public teacherId!: number;
   public sessionId!: number;
-  public term!: "term1" | "term2" | "term3";
+  public termId!: number;
   public day!: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday";
   public period!: number;
   public startTime!: string;
@@ -62,9 +62,11 @@ Timetable.init(
       allowNull: false,
     },
 
-    term: {
-      type: DataTypes.ENUM("term1", "term2", "term3"),
+  termId: {
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      references: { model: "Terms", key: "id" },
+      onDelete: "CASCADE",
     },
 
     day: {
@@ -101,7 +103,7 @@ Timetable.init(
     indexes: [
       {
         unique: true,
-        fields: ["classId", "sessionId", "term", "day", "period"],
+        fields: ["classId", "sessionId", "termId", "day", "period"],
       },
     ],
   }
@@ -112,5 +114,7 @@ Timetable.belongsTo(ClassModel, { foreignKey: "classId", as: "class" });
 Timetable.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" });
 Timetable.belongsTo(Teacher, { foreignKey: "teacherId", as: "teacher" });
 Timetable.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
-
+Timetable.belongsTo(Term, { foreignKey: "termId", as: "term" });
+Term.hasMany(Timetable, { foreignKey: "termId", as: "timetables" });
+Session.hasMany(Timetable, { foreignKey: "sessionId", as: "timetables" });
 export default Timetable;

@@ -2,6 +2,9 @@ import Teacher from './auth/teacher.model';
 import Student from './auth/student.model';
 import ClassModel from './class/class.model';
 import Subject from './subject/subject.model';
+import Session from './session/session.model';
+import termsModel from './terms/terms.model';
+import sequelize from '../database';
 
 // ✅ Class ↔ Subject (One-to-Many)
 ClassModel.hasMany(Subject, { foreignKey: 'classId', as: 'subjects', onDelete: 'CASCADE'});
@@ -22,6 +25,9 @@ Subject.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
 // ✅ Add primary teacher to class
 ClassModel.belongsTo(Teacher, { foreignKey: "teacherId", as: "classTeacher" });
 Teacher.hasMany(ClassModel, { foreignKey: "teacherId", as: "assignedClasses" });
+const Term = termsModel(sequelize);
 
+Session.hasMany(Term, { foreignKey: "sessionId", as: "terms" });
+Term.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 
-export { ClassModel, Subject, Teacher, Student };
+export { ClassModel, Subject, Teacher, Student, Term, Session };

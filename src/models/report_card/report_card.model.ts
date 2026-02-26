@@ -1,6 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from '../../database';
-import { ClassModel, Student, Subject } from "../association.model";
+import { ClassModel, Student, Subject, Term } from "../association.model";
 import Session from "../session/session.model";
 
 class ReportCard extends Model {
@@ -8,7 +8,7 @@ class ReportCard extends Model {
   public studentId!: number;
   public classId!: number;
   public subjectId!: number;
-  public term!: string;
+  public termId!: number;
   public testScore!: number;
   public examScore!: number;
   public totalScore!: number;
@@ -59,9 +59,11 @@ ReportCard.init(
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE',
     },
-    term: {
-      type: DataTypes.STRING,
+     termId: {
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      references: { model: "Terms", key: "id" },
+      onDelete: "CASCADE",
     },
     testScore: {
       type: DataTypes.FLOAT,
@@ -109,4 +111,6 @@ ReportCard.belongsTo(ClassModel, { as: "class", foreignKey: "classId", onDelete:
 ReportCard.belongsTo(Subject, { as: "subject", foreignKey: "subjectId" });
 ReportCard.belongsTo(Session, { foreignKey: "sessionId", as: "session" });
 Session.hasMany(ReportCard, { foreignKey: "sessionId", as: "report_cards" });
+ReportCard.belongsTo(Term, { foreignKey: "termId", as: "term" });
+Term.hasMany(ReportCard, { foreignKey: "termId", as: "report_cards" });
 export default ReportCard;

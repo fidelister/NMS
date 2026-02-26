@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
-import SuccessResponse, { getActiveSession, getGrade } from "../../middlewares/helper";
+import SuccessResponse, { getActiveAcademicPeriod, getActiveSession, getGrade } from "../../middlewares/helper";
 import ExamResult from "../../models/Exams/examResults.model";
 import { ClassModel, Student, Subject } from "../../models/association.model";
 import ClassTest from "../../models/ClassTests/classTests.model";
@@ -52,13 +52,13 @@ import { AuthRequest } from "../../middlewares/authMiddleware";
 //   new SuccessResponse("Report cards generated successfully", reportCards).sendResponse(res);
 // });
 export const generateReportCards = asyncHandler(async (req: Request, res: Response) => {
-  const { classId, term } = req.body;
+  const { classId } = req.body;
   // Get active session
-  const activeSession = await Session.findOne({ where: { isActive: true } });
-  if (!activeSession) {
-    res.status(400).json({ message: "No active session found" });
-    return;
-  }
+    const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
   // Prevent duplicate generation
   // const existing = await ReportCard.findOne({
   //   where: { classId, term, sessionId: activeSession.id },
@@ -74,11 +74,11 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
 
   // Get students + subjects
   const students = await Student.findAll({
-    where: { classId, sessionId: activeSession.id },
+    where: { classId, sessionId: session.id },
   });
 
   const subjects = await Subject.findAll({
-    where: { classId, sessionId: activeSession.id },
+    where: { classId, sessionId: session.id },
   });
 
   const generatedCards: any[] = [];
@@ -90,8 +90,8 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
         where: {
           studentId: student.id,
           subjectId: subject.id,
-          term,
-          sessionId: activeSession.id,
+          termId: term.id,
+          sessionId: session.id,
         },
       });
 
@@ -99,8 +99,8 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
         where: {
           studentId: student.id,
           subjectId: subject.id,
-          term,
-          sessionId: activeSession.id,
+          termId: term.id,
+          sessionId: session.id,
         },
       });
 
@@ -123,13 +123,13 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
         studentId: student.id,
         classId,
         subjectId: subject.id,
-        term,
         testScore,
         examScore,
         totalScore,
         grade,
         remark,
-        sessionId: activeSession.id,
+        sessionId: session.id,
+        termId: term.id,
       });
 
       generatedCards.push({
@@ -209,8 +209,8 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
   // FINAL RESPONSE
   return new SuccessResponse("Report cards generated successfully", {
     meta: {
-      session: activeSession.name,
-      term,
+      session: session.name,
+      term: term.name,
       class: theClass?.name,
       total_students: finalResult.length,
       class_average: Number(classAverage.toFixed(2)),
@@ -225,9 +225,13 @@ export const generateReportCards = asyncHandler(async (req: Request, res: Respon
 // // ✅ GET /api/report-cards/class/:classId
 export const getClassReportCards = asyncHandler(async (req: Request, res: Response) => {
   const { classId } = req.params;
-
+ const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
   const reportCards = await ReportCard.findAll({
-    where: { classId },
+    where: { classId, sessionId: session.id, termId: term.id },
     include: [
       { model: Student, as: "student", attributes: ["firstName", "lastName"] },
       { model: Subject, as: "subject", attributes: ["name"] },
@@ -240,11 +244,14 @@ export const getClassReportCards = asyncHandler(async (req: Request, res: Respon
 // // ✅ GET /api/report-cards/student/:studentId
 export const getStudentReportCard = asyncHandler(async (req: Request, res: Response) => {
   const { studentId } = req.params;
-  const { term } = req.body;
-
+ const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
   // Fetch student's report cards for the term
   const reportCards = await ReportCard.findAll({
-    where: { studentId, term },
+    where: { studentId, sessionId: session.id, termId: term.id },
     include: [
       { model: ClassModel, as: "class", attributes: ["id", "name"] },
       { model: Subject, as: "subject", attributes: ["name"] },
@@ -259,7 +266,7 @@ export const getStudentReportCard = asyncHandler(async (req: Request, res: Respo
 
   // ✅ Step 1: Fetch all report cards in that class & term
   const allClassReportCards = await ReportCard.findAll({
-    where: { classId, term },
+    where: { classId, termId: term.id, sessionId: session.id },
     include: [{ model: Student, as: "student", attributes: ["id"] }]
   });
 
@@ -312,11 +319,14 @@ export const getStudentReportCard = asyncHandler(async (req: Request, res: Respo
 });
 export const getStudentCard = asyncHandler(async (req: AuthRequest, res: Response) => {
   const studentId  = req.user?.id;
-  const { term } = req.body;
-
+ const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
   // Fetch student's report cards for the term
   const reportCards = await ReportCard.findAll({
-    where: { studentId, term },
+    where: { studentId, sessionId: session.id, termId: term.id },
     include: [
       { model: ClassModel, as: "class", attributes: ["id", "name"] },
       { model: Subject, as: "subject", attributes: ["name"] },
@@ -331,7 +341,7 @@ export const getStudentCard = asyncHandler(async (req: AuthRequest, res: Respons
 
   // ✅ Step 1: Fetch all report cards in that class & term
   const allClassReportCards = await ReportCard.findAll({
-    where: { classId, term },
+    where: { classId, termId: term.id, sessionId: session.id },
     include: [{ model: Student, as: "student", attributes: ["id"] }]
   });
 
@@ -385,31 +395,30 @@ export const getStudentCard = asyncHandler(async (req: AuthRequest, res: Respons
 
 
 export const regenerateReportCards = asyncHandler(async (req: Request, res: Response) => {
-  const { classId, term } = req.body;
+  const { classId } = req.body;
+ const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
 
-  // 🔍 Get the active session
-  const activeSession = await Session.findOne({ where: { isActive: true } });
-  if (!activeSession) {
-    res.status(400).json({ message: "No active session found" });
-    return;
-  }
 
   // 🔍 Delete old report cards for this class + term + session
   await ReportCard.destroy({
     where: {
       classId,
-      term,
-      sessionId: activeSession.id
+      termId: term.id,
+      sessionId: session.id
     },
   });
 
   // 🔍 Get required students & subjects under this session
   const students = await Student.findAll({
-    where: { classId, sessionId: activeSession.id },
+    where: { classId, sessionId: session.id },
   });
 
   const subjects = await Subject.findAll({
-    where: { classId, sessionId: activeSession.id },
+    where: { classId, sessionId: session.id },
   });
 
   const reportCards: any[] = [];
@@ -421,8 +430,8 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
         where: {
           studentId: student.id,
           subjectId: subject.id,
-          term,
-          sessionId: activeSession.id,
+          termId: term.id,
+          sessionId: session.id,
         },
       });
 
@@ -430,8 +439,8 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
         where: {
           studentId: student.id,
           subjectId: subject.id,
-          term,
-          sessionId: activeSession.id,
+          termId: term.id,
+          sessionId: session.id,
         },
       });
 
@@ -449,13 +458,13 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
         studentId: student.id,
         classId,
         subjectId: subject.id,
-        term,
         testScore: testScore ?? 0,
         examScore: examScore ?? 0,
         totalScore,
         grade,
         remark,
-        sessionId: activeSession.id,
+        sessionId: session.id,
+        termId: term.id,
       });
 
       reportCards.push(report);
@@ -472,8 +481,8 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
 
   new SuccessResponse("Report cards regenerated successfully", {
     classId,
-    term,
-    sessionId: activeSession.id,
+    term: term.name,
+    session: session.name,
     count: reportCards.length,
     reportCards,
   }).sendResponse(res);
@@ -710,19 +719,16 @@ export const regenerateReportCards = asyncHandler(async (req: Request, res: Resp
 // });
 
 export const getClassResults = asyncHandler(async (req: Request, res: Response) => {
-  const { classId, term } = req.params;
+  const { classId } = req.params;
 
-  if (!term) {
-    res.status(400).json({ message: "Term is required (term1, term2)" });
-    return;
-  }
 
   // 🔹 Get active session
-  const activeSession = await Session.findOne({ where: { isActive: true } });
-  if (!activeSession) {
-    res.status(400).json({ message: "No active session found" });
-    return;
-  }
+        
+  const { session, term } = await getActiveAcademicPeriod();
+     if (!session || !term) {
+       res.status(400).json({ message: "No active academic period found" });
+       return;
+     }
 
   // 🔹 Get the class
   const classRecord = await ClassModel.findByPk(classId);
@@ -733,7 +739,7 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
 
   // 🔹 Get students in this class + session
   const students = await Student.findAll({
-    where: { classId, sessionId: activeSession.id },
+    where: { classId, sessionId: session.id },
   });
 
   if (students.length === 0) {
@@ -747,8 +753,8 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
   const reportCards = await ReportCard.findAll({
     where: {
       classId,
-      term,
-      sessionId: activeSession.id,
+      termId: term.id,
+      sessionId: session.id,
     },
     include: [
       { model: Subject, as: "subject", attributes: ["id", "name"] },
@@ -850,8 +856,8 @@ export const getClassResults = asyncHandler(async (req: Request, res: Response) 
     status: "success",
     meta: {
       class: classRecord.name,
-      session: activeSession.name,
-      term,
+      session: session.name,
+      term: term.name,
       student_count: finalData.length,
     },
     data: finalData,
