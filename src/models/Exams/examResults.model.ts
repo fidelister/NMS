@@ -65,7 +65,7 @@ ExamResult.init(
     termId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
-      references: { model: "terms", key: "id" },
+      references: { model: "Terms", key: "id" },
       onDelete: "CASCADE",
     },
 
