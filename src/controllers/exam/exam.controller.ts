@@ -117,9 +117,9 @@ export const uploadExamResults = asyncHandler(
     for (const result of results) {
       const { studentId, subjectId, marksObtained } = result;
 
-      if (marksObtained < 0 || marksObtained > 60) {
+      if (marksObtained < 0 || marksObtained > 80) {
         throw new Error(
-          `Invalid marks for student ${studentId}. Must be 0–60`
+          `Invalid marks for student ${studentId}. Must be 0–80`
         );
       }
 

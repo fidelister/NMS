@@ -71,7 +71,7 @@ Exam.init(
         totalMarks: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            defaultValue: 60,
+            defaultValue: 80,
         },
     },
     {

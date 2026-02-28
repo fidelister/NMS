@@ -170,10 +170,8 @@ export const createClassTest = asyncHandler(
         date,
         test1,
         test2,
-
-        totalMarks: 40,
+        totalMarks: 20,
         totalMarkObtained,
-
         sessionId: session.id,
         termId: term.id
 

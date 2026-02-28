@@ -89,7 +89,7 @@ ClassTest.init(
     totalMarks: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 40,
+      defaultValue: 20,
     },
     totalMarkObtained: {
       type: DataTypes.FLOAT,
