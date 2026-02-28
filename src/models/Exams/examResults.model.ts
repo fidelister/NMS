@@ -65,14 +65,14 @@ ExamResult.init(
     termId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
-      references: { model: "Terms", key: "id" },
+      references: { model: "terms", key: "id" },
       onDelete: "CASCADE",
     },
 
     marksObtained: {
       type: DataTypes.FLOAT,
       allowNull: false,
-      validate: { min: 0, max: 60 },
+      validate: { min: 0, max: 80},
     },
   },
   {
