@@ -1,7 +1,7 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
 import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getSchoolDashboardStats, getSessionTerms, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin, switchActiveTerm } from "../../controllers/auth/admin/admin.controller";
-import { changeStudentClass, createClass, deleteClass, promoteClassStudents, updateClass } from "../../controllers/class/class.controller";
+import { changeStudentClass, createClass, deleteClass, promoteClassStudents, promoteSelectedStudents, updateClass } from "../../controllers/class/class.controller";
 import { createSubject, updateSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
 import { getStudentAttendance } from "../../controllers/attendance/attendance.controller";
@@ -81,6 +81,8 @@ adminRoutes.patch("/switch/:termId", protect, adminOnly, switchActiveTerm)
 adminRoutes.patch("/promote", protect, adminOnly, changeStudentClass)
 adminRoutes.get("/termInSession", protect, adminOnly, getSessionTerms)
 adminRoutes.patch("/promote", protect, adminOnly, changeStudentClass)
+adminRoutes.post("/promote-selected", protect, adminOnly, promoteSelectedStudents)
 adminRoutes.post("/promote-class", protect, adminOnly, promoteClassStudents)
+
 export default adminRoutes;
     

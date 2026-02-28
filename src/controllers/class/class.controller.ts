@@ -288,5 +288,94 @@ export const changeStudentClass = asyncHandler(
 
   }
 );
+export const promoteSelectedStudents = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
 
+    const { classId, toClassId, studentIds } = req.body;
+
+    // 1️⃣ Validate studentIds
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      res.status(400).json({
+        message: "studentIds array is required"
+      });
+      return;
+    }
+
+    // 2️⃣ Get Active Academic Period
+    const { session, term } = await getActiveAcademicPeriod();
+
+    if (!session || !term) {
+      res.status(400).json({
+        message: "No active academic period found"
+      });
+      return;
+    }
+
+    // 3️⃣ Validate Classes
+    const fromClass = await ClassModel.findByPk(classId);
+    const toClass = await ClassModel.findByPk(toClassId);
+
+    if (!fromClass) {
+      res.status(404).json({
+        message: "Source class not found"
+      });
+      return;
+    }
+
+    if (!toClass) {
+      res.status(404).json({
+        message: "Destination class not found"
+      });
+      return;
+    }
+
+    // 4️⃣ Prevent same class promotion
+    if (classId === toClassId) {
+      res.status(400).json({
+        message: "Cannot promote to same class"
+      });
+      return;
+    }
+
+    // 5️⃣ Verify students belong to class
+    const students = await Student.findAll({
+      where: {
+        id: studentIds,
+        classId: classId
+      },
+      attributes: ["id"]
+    });
+
+    if (students.length === 0) {
+      res.status(404).json({
+        message: "No valid students found in this class"
+      });
+      return;
+    }
+
+    // 6️⃣ Update Students
+    await Student.update(
+      { classId: toClassId },
+      {
+        where: {
+          id: studentIds,
+          classId: classId
+        }
+      }
+    );
+
+
+    new SuccessResponse(
+      "Selected students promoted successfully",
+      {
+        promotedStudents: students.length,
+        fromClass: fromClass.name,
+        toClass: toClass.name,
+        session: session.name,
+        term: term.name
+      }
+    ).sendResponse(res);
+
+  }
+);
 
