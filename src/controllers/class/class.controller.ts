@@ -212,5 +212,81 @@ export const changeStudentClass = asyncHandler(
     ).sendResponse(res);
 
   });
+  export const promoteClassStudents = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+
+    const { fromClassId, toClassId } = req.body;
+
+    // 1️⃣ Get Active Academic Period
+    const { session, term } = await getActiveAcademicPeriod();
+
+    if (!session || !term) {
+      res.status(400).json({
+        message: "No active academic period found"
+      });
+      return;
+    }
+
+    // 2️⃣ Validate Classes
+    const fromClass = await ClassModel.findByPk(fromClassId);
+    const toClass = await ClassModel.findByPk(toClassId);
+
+    if (!fromClass) {
+      res.status(404).json({
+        message: "Source class not found"
+      });
+      return;
+    }
+
+    if (!toClass) {
+      res.status(404).json({
+        message: "Destination class not found"
+      });
+      return;
+    }
+
+    // 3️⃣ Prevent same class promotion
+    if (fromClassId === toClassId) {
+      res.status(400).json({
+        message: "Source and destination classes cannot be the same"
+      });
+      return;
+    }
+
+    // 4️⃣ Get Students
+    const students = await Student.findAll({
+      where: { classId: fromClassId },
+      attributes: ["id"]
+    });
+
+    if (students.length === 0) {
+      res.status(404).json({
+        message: "No students found in this class"
+      });
+      return;
+    }
+
+    // 5️⃣ Promote Students
+    await Student.update(
+      { classId: toClassId },
+      {
+        where: { classId: fromClassId }
+      }
+    );
+
+
+    new SuccessResponse(
+      "Students promoted successfully",
+      {
+        promotedStudents: students.length,
+        fromClass: fromClass.name,
+        toClass: toClass.name,
+        session: session.name,
+        term: term.name
+      }
+    ).sendResponse(res);
+
+  }
+);
 
 
