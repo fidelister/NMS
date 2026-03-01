@@ -1,5 +1,5 @@
 import { Express, Router, Request, Response } from "express";
-import { adminOnly, protect } from "../../middlewares/authMiddleware";
+import { adminOnly, adminOrTeacher, protect } from "../../middlewares/authMiddleware";
 import { changeStudentPassword, deleteStudent, getAllStudents, getMyClassTests, getMyExamResults, getStudentAssignments, getStudentById, getStudentDashboardStats, getStudentProfile, loginStudent, registerStudent, updateStudentDetails } from "../../controllers/auth/student/student.controller";
 import { getExamResults } from "../../controllers/exam/exam.controller";
 import { getStudentCard } from "../../controllers/report_card/report_card.controller";
@@ -15,7 +15,7 @@ studentRoutes.post('/register', protect, adminOnly, registerStudent);
 studentRoutes.post('/changePassword', protect, changeStudentPassword);
 studentRoutes.post('/login', loginStudent);
 studentRoutes.get('/profile', protect, getStudentProfile);
-studentRoutes.get("/students",protect,adminOnly, getAllStudents);
+studentRoutes.get("/students",protect,adminOrTeacher, getAllStudents);
 studentRoutes.get("/:id", protect,adminOnly,getStudentById);
 studentRoutes.delete("/:id", protect,adminOnly,deleteStudent);
 studentRoutes.put("/update", protect, adminOnly, updateStudentDetails);
