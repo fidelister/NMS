@@ -1,7 +1,7 @@
 // src/models/session/session.model.ts
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../../database";
-
+import { Term } from  "../association.model";
 export interface SessionAttributes {
   id: number;
   name: string; // e.g., "2025"
@@ -16,6 +16,8 @@ class Session extends Model<SessionAttributes, SessionCreationAttributes> implem
   public id!: number;
   public name!: string;
   public isActive!: boolean;
+  public terms?: InstanceType<typeof Term>[];
+
 }
 
 Session.init(

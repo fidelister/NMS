@@ -680,6 +680,107 @@ export const switchActiveTerm = asyncHandler(
     ).sendResponse(res);
 
   });
+
+export const switchSession = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+
+    const { sessionId } = req.params;
+
+    // 1️⃣ Find Session
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: Term,
+          as: "terms"
+        }
+      ]
+    });
+
+    if (!session) {
+      res.status(404).json({
+        message: "Session not found"
+      });
+      return;
+    }
+
+    // 2️⃣ Deactivate all sessions
+    await Session.update(
+      { isActive: false },
+      { where: {} }
+    );
+
+    // 3️⃣ Activate selected session
+    session.isActive = true;
+    await session.save();
+
+    // 4️⃣ Ensure One Active Term Exists
+    const activeTerm = session.terms?.find(t => t.isActive);
+
+    if (!activeTerm) {
+
+      // deactivate any term accidentally active
+      await Term.update(
+        { isActive: false },
+        { where: { sessionId: session.id } }
+      );
+
+      // activate Term1 by default
+      await Term.update(
+        { isActive: true },
+        {
+          where: {
+            sessionId: session.id,
+            name: "term1"
+          }
+        }
+      );
+    }
+
+    new SuccessResponse(
+      "Session switched successfully",
+      {
+        session: session.name
+      }
+    ).sendResponse(res);
+
+  }
+);
+export const deleteSession = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+
+    const { sessionId } = req.params;
+
+    // 1️⃣ Find Session
+    const session = await Session.findByPk(sessionId);
+
+    if (!session) {
+      res.status(404).json({
+        message: "Session not found"
+      });
+      return;
+    }
+
+    // 2️⃣ Prevent deleting active session
+    if (session.isActive) {
+      res.status(400).json({
+        message: "Cannot delete active session"
+      });
+      return;
+    }
+
+    // 3️⃣ Delete session (Terms auto-delete)
+    await session.destroy();
+
+    new SuccessResponse(
+      "Session deleted successfully",
+      {
+        deletedSession: session.name
+      }
+    ).sendResponse(res);
+
+  }
+);
+
 export const getSessionTerms =
   asyncHandler(async (req: Request, res: Response) => {
 

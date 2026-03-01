@@ -79,3 +79,5 @@ export const getSessionDetails = asyncHandler(async (req: Request, res: Response
     new SuccessResponse('Session details retrieved successfully', response).sendResponse(res);
 });
 
+
+

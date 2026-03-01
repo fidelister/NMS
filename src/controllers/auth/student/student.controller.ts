@@ -345,21 +345,21 @@ export const getStudentDashboardStats = asyncHandler(async (req: AuthRequest, re
 );
 export const getMyClassTests = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const studentId = req.user?.id; // ✅ logged-in student
-  const { term } = req.body;
+  const { session, term } = await getActiveAcademicPeriod();
 
-  // ✅ Get active session
-  const activeSession = await Session.findOne({ where: { isActive: true } });
-  if (!activeSession) {
-    res.status(400).json({ message: "No active session found" });
-    return;
-  }
+    if (!session || !term) {
+      res.status(400).json({
+        message: "No active academic period"
+      });
+      return;
+    }
 
   // ✅ Fetch class tests
   const tests = await ClassTest.findAll({
     where: {
       studentId,
-      sessionId: activeSession.id,
-      ...(term ? { term } : {}),
+      sessionId: session?.id,
+      termId: term?.id
     },
     include: [
       {
@@ -404,8 +404,8 @@ export const getMyClassTests = asyncHandler(async (req: AuthRequest, res: Respon
 
   new SuccessResponse("Class tests fetched successfully", {
     session: {
-      id: activeSession.id,
-      name: activeSession.name,
+      id: session?.id,
+      name: session?.name,
     },
     totalTests: tests.length,
     subjects: groupedBySubject,

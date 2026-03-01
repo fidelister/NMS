@@ -1,6 +1,6 @@
 import { Express, Router, Request, Response } from "express";
 import { adminOnly, adminOrTeacher, protect, teacherOnly } from "../../middlewares/authMiddleware";
-import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, getAdminProfile, getAllClasses, getSchoolDashboardStats, getSessionTerms, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin, switchActiveTerm } from "../../controllers/auth/admin/admin.controller";
+import { activeSession, assignPrimaryTeacherToClass, assignStudentToClass, assignTeacherToSubject, changeAdminPassword, deleteSession, getAdminProfile, getAllClasses, getSchoolDashboardStats, getSessionTerms, getStudentsByClass, getSubjectsByClass, getTeacherClasses, getTeacherSubjects, loginAdmin, registerAdmin, switchActiveTerm, switchSession } from "../../controllers/auth/admin/admin.controller";
 import { changeStudentClass, createClass, deleteClass, promoteClassStudents, promoteSelectedStudents, updateClass } from "../../controllers/class/class.controller";
 import { createSubject, updateSubject } from "../../controllers/subject/subject.controller";
 import { registerTeacher } from "../../controllers/auth/teacher/teacher.controller";
@@ -18,13 +18,13 @@ const adminRoutes: Router = Router();
 adminRoutes.post('/register', registerAdmin);
 adminRoutes.post('/login', loginAdmin);
 adminRoutes.post('/create-session', protect, adminOnly, createSession);
-adminRoutes.get('/sessions', protect, adminOnly, getAllSessions);
-adminRoutes.get('/active-session', protect, adminOnly, activeSession);
+adminRoutes.get('/sessions', protect, adminOrTeacher, getAllSessions);
+adminRoutes.get('/active-session', protect, adminOrTeacher, activeSession);
 
 adminRoutes.get(
     '/sessions/:sessionId/details',
     protect,
-    adminOnly,
+    adminOrTeacher,
     getSessionDetails
 );
 adminRoutes.post('/changePassword', protect, adminOnly, changeAdminPassword);
@@ -36,10 +36,10 @@ adminRoutes.post('/student-class', protect, adminOnly, assignStudentToClass);
 adminRoutes.post('/teacher-subject', protect, adminOnly, assignTeacherToSubject);
 adminRoutes.post('/teacher-class', protect, adminOnly, assignPrimaryTeacherToClass);
 adminRoutes.get('/profile', protect, getAdminProfile);
-adminRoutes.get('/studentsByClass/:classId', protect, adminOnly, getStudentsByClass);
+adminRoutes.get('/studentsByClass/:classId', protect, adminOrTeacher, getStudentsByClass);
 adminRoutes.get("/student/:studentId", protect, adminOnly, getStudentAttendance);
-adminRoutes.get('/allClasses', protect, adminOnly, getAllClasses);
-adminRoutes.get('/subjectsByClass/:classId', protect, adminOnly, getSubjectsByClass);
+adminRoutes.get('/allClasses', protect, adminOrTeacher, getAllClasses);
+adminRoutes.get('/subjectsByClass/:classId', protect, adminOrTeacher, getSubjectsByClass);
 adminRoutes.get("/teacherClass/:teacherId", protect, adminOnly, getTeacherClasses);
 adminRoutes.get("/teacherSubjects/:teacherId", protect, adminOnly, getTeacherSubjects);
 //report card
@@ -76,10 +76,11 @@ adminRoutes.get("/exams/completed/:classId/:sessionId/:term", protect, adminOrTe
 adminRoutes.get("/tests/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getTestsWithPendingScores)
 adminRoutes.get("/dashboard-stats", protect, adminOnly, getSchoolDashboardStats);
 
-
+adminRoutes.delete("/delete-session/:sessionId", protect, adminOnly, deleteSession)
 adminRoutes.patch("/switch/:termId", protect, adminOnly, switchActiveTerm)
+adminRoutes.post("/switch-session/:sessionId", protect, adminOnly, switchSession)
 adminRoutes.patch("/promote", protect, adminOnly, changeStudentClass)
-adminRoutes.get("/termInSession", protect, adminOnly, getSessionTerms)
+adminRoutes.get("/termInSession", protect, adminOrTeacher, getSessionTerms)
 adminRoutes.patch("/promote", protect, adminOnly, changeStudentClass)
 adminRoutes.post("/promote-selected", protect, adminOnly, promoteSelectedStudents)
 adminRoutes.post("/promote-class", protect, adminOnly, promoteClassStudents)
