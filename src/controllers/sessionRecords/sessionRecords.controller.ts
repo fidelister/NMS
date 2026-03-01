@@ -1,7 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import { Request, Response } from 'express';
 import Exam from '../../models/Exams/exam.model';
-import SuccessResponse from '../../middlewares/helper';
+import SuccessResponse, { getActiveAcademicPeriod } from '../../middlewares/helper';
 import ExamResult from '../../models/Exams/examResults.model';
 import Attendance from '../../models/attendance/attendance.model';
 import Assignment from '../../models/assignment/assignment.model';
@@ -12,10 +12,14 @@ import { ClassModel, Subject, Teacher } from '../../models/association.model';
 
 export const getExamsBySession = asyncHandler(
   async (req: Request, res: Response) => {
-    const { sessionId } = req.params;
+ const { session, term } = await getActiveAcademicPeriod();
 
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
     const exams = await Exam.findAll({
-      where: { sessionId },
+      where: { sessionId: session.id },
       include: ["subject"],
       order: [["createdAt", "DESC"]],
     });
@@ -25,10 +29,15 @@ export const getExamsBySession = asyncHandler(
 );
 export const getExamResultsBySession = asyncHandler(
   async (req: Request, res: Response) => {
-    const { sessionId } = req.params;
+    const { session, term } = await getActiveAcademicPeriod();
+
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
 
     const results = await ExamResult.findAll({
-      where: { sessionId },
+      where: { sessionId: session.id },
       include: [{
           association: "student",
           attributes: ["id", "firstName", "lastName", "gender", "email"],
@@ -46,10 +55,14 @@ export const getExamResultsBySession = asyncHandler(
 );
 export const getAttendanceBySession = asyncHandler(
   async (req: Request, res: Response) => {
-    const { sessionId } = req.params;
+  const { session, term } = await getActiveAcademicPeriod();
 
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
     const attendance = await Attendance.findAll({
-      where: { sessionId },
+      where: { sessionId: session.id },
       include: [
         {
           association: "student",
@@ -67,10 +80,15 @@ export const getAttendanceBySession = asyncHandler(
 );
 export const getAssignmentsBySession = asyncHandler(
   async (req: Request, res: Response) => {
-    const { sessionId } = req.params;
+    const { session, term } = await getActiveAcademicPeriod();
+
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
 
     const assignments = await Assignment.findAll({
-      where: { sessionId },
+      where: { sessionId: session.id },
       include: ["subject", "class"],
     });
 
@@ -80,10 +98,14 @@ export const getAssignmentsBySession = asyncHandler(
 
 export const getTestScoresBySession = asyncHandler(
   async (req: Request, res: Response) => {
-    const { sessionId } = req.params;
+  const { session, term } = await getActiveAcademicPeriod();
 
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
     const scores = await ClassTest.findAll({
-      where: { sessionId },
+      where: { sessionId: session.id },
       include: [{
           association: "student",
           attributes: ["id", "firstName", "lastName", "gender", "email"],
@@ -95,10 +117,14 @@ export const getTestScoresBySession = asyncHandler(
 );
 export const getReportCardsBySession = asyncHandler(
   async (req: Request, res: Response) => {
-    const { sessionId } = req.params;
+  const { session, term } = await getActiveAcademicPeriod();
 
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
     const reportCards = await ReportCard.findAll({
-      where: { sessionId },
+      where: { sessionId: session.id },
       include: [
         {
           association: "student",
@@ -115,7 +141,7 @@ export const getReportCardsBySession = asyncHandler(
       ],
       order: [
         ["studentId", "ASC"],
-        ["term", "ASC"],
+        ["termId", "ASC"],
       ],
     });
 
@@ -124,10 +150,14 @@ export const getReportCardsBySession = asyncHandler(
 );
 export const getTimetableBySession = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { sessionId } = req.params;
+  const { session, term } = await getActiveAcademicPeriod();
 
+    if (!session || !term) {
+      res.status(400).json({ message: "No active academic period found" });
+      return;
+    }
     const timetables = await Timetable.findAll({
-      where: { sessionId },
+      where: { sessionId: session.id },
       order: [
         ["classId", "ASC"],
         ["day", "ASC"],

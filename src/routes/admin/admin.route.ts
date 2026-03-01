@@ -47,14 +47,14 @@ adminRoutes.post("/generate", protect, adminOrTeacher, generateReportCards);
 adminRoutes.post("/regenerate", protect, adminOrTeacher, regenerateReportCards);
 adminRoutes.get("/class-report/:classId", protect, adminOrTeacher, getClassReportCards);
 adminRoutes.get("/student-report/:studentId", protect, adminOrTeacher, getStudentReportCard);
-adminRoutes.get("/class-results/:classId/:term", protect, adminOrTeacher, getClassResults);
+adminRoutes.get("/class-results/:classId", protect, adminOrTeacher, getClassResults);
 //psychomotor details
 adminRoutes.post("/psychomotor", protect, adminOrTeacher, createOrUpdatePsychomotor);
 adminRoutes.get("/psychomotor/:studentId", protect, adminOrTeacher, getStudentPsychomotor);
 adminRoutes.get("/class-psychomotor/:classId", protect, adminOrTeacher, getClassPsychomotor);
 //timetable
 adminRoutes.post("/timetable", protect, adminOnly, createTimetable)
-adminRoutes.get("/timetable/:classId/:term", protect, adminOnly, getClassTimetable)
+adminRoutes.get("/timetable/:classId", protect, adminOnly, getClassTimetable)
 adminRoutes.patch("/timetable/:id", protect, adminOnly, updateTimetable)   
 adminRoutes.delete("/timetable/:id", protect, adminOnly, deleteTimetable)
 
@@ -62,18 +62,16 @@ adminRoutes.delete("/timetable/:id", protect, adminOnly, deleteTimetable)
 adminRoutes.put("/classes", protect, adminOrTeacher, updateClass);
 adminRoutes.put("/subjects", protect, adminOrTeacher, updateSubject);
 
-adminRoutes.get("/sessions/:sessionId/exams", protect, adminOnly, getExamsBySession);
-adminRoutes.get("/sessions/:sessionId/exam-results", protect, adminOnly, getExamResultsBySession);
-adminRoutes.get("/sessions/:sessionId/attendance", protect, adminOnly, getAttendanceBySession);
-adminRoutes.get("/sessions/:sessionId/assignments", protect, adminOnly, getAssignmentsBySession);
-adminRoutes.get("/sessions/:sessionId/class-tests", protect, adminOnly, getTestScoresBySession);
-adminRoutes.get("/sessions/:sessionId/report-cards", protect, adminOnly, getReportCardsBySession);
-adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetableBySession);
-adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetableBySession);
-adminRoutes.get("/sessions/:sessionId/timetable", protect, adminOnly, getTimetableBySession);
-adminRoutes.get("/exams/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getExamsWithPendingScores)
-adminRoutes.get("/exams/completed/:classId/:sessionId/:term", protect, adminOrTeacher, getCompletedExams)
-adminRoutes.get("/tests/pending/:classId/:sessionId/:term", protect, adminOrTeacher, getTestsWithPendingScores)
+adminRoutes.get("/sessions/exams", protect, adminOnly, getExamsBySession);
+adminRoutes.get("/sessions/exam-results", protect, adminOnly, getExamResultsBySession);
+adminRoutes.get("/sessions/attendance", protect, adminOnly, getAttendanceBySession);
+adminRoutes.get("/sessions/assignments", protect, adminOnly, getAssignmentsBySession);
+adminRoutes.get("/sessions/class-tests", protect, adminOnly, getTestScoresBySession);
+adminRoutes.get("/sessions/report-cards", protect, adminOnly, getReportCardsBySession);
+adminRoutes.get("/sessions/timetable", protect, adminOnly, getTimetableBySession);
+adminRoutes.get("/exams/pending/:classId", protect, adminOrTeacher, getExamsWithPendingScores)
+adminRoutes.get("/exams/completed/:classId", protect, adminOrTeacher, getCompletedExams)
+adminRoutes.get("/tests/pending/:classId", protect, adminOrTeacher, getTestsWithPendingScores)
 adminRoutes.get("/dashboard-stats", protect, adminOnly, getSchoolDashboardStats);
 
 adminRoutes.delete("/delete-session/:sessionId", protect, adminOnly, deleteSession)
